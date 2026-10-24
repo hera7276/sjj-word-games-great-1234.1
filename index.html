@@ -1,0 +1,4156 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eagle C2 debate - Vocab Master Arena</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- Global Realtime MQTT/WebSocket Engine (No server installation required) -->
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', 'Noto Sans KR', sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    .clean-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
+    }
+    .clean-card-hover {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .clean-card-hover:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px -3px rgba(15, 23, 42, 0.08);
+      border-color: #cbd5e1;
+    }
+    .perspective-1000 {
+      perspective: 1000px;
+    }
+    .transform-style-3d {
+      transform-style: preserve-3d;
+    }
+    .backface-hidden {
+      backface-visibility: hidden;
+    }
+    .rotate-y-180 {
+      transform: rotateY(180deg);
+    }
+    #rain-canvas {
+      background: linear-gradient(180deg, #f1f5f9 0%, #ffffff 100%);
+    }
+    .drawer-backdrop {
+      background: rgba(15, 23, 42, 0.45);
+      backdrop-filter: blur(4px);
+    }
+    .drawer-panel {
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+  </style>
+</head>
+<body class="flex flex-col selection:bg-indigo-600 selection:text-white pb-12">
+
+  <!-- Left Side Slide-in Drawer -->
+  <div id="drawer-backdrop" onclick="closeDrawer()" class="fixed inset-0 z-50 drawer-backdrop opacity-0 pointer-events-none transition-opacity duration-300"></div>
+
+  <aside id="side-drawer" class="fixed top-0 left-0 h-full w-80 max-w-[85vw] bg-white z-50 shadow-2xl flex flex-col drawer-panel -translate-x-full border-r border-slate-200">
+    <!-- Drawer Header -->
+    <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black shadow-md shadow-indigo-600/20">
+          <i class="fa-solid fa-graduation-cap text-lg"></i>
+        </div>
+        <div>
+          <span class="text-[10px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">Eagle C2</span>
+          <h2 class="text-base font-bold text-slate-800 leading-tight">학습 & 대전 허브</h2>
+        </div>
+      </div>
+      <button onclick="closeDrawer()" class="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+    </div>
+
+    <!-- User Profile Summary in Drawer -->
+    <div class="p-4 bg-slate-50 border-b border-slate-100">
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-black" id="drawer-user-avatar">
+            U
+          </div>
+          <div>
+            <div class="text-xs font-bold text-slate-800 flex items-center gap-1">
+              <span id="drawer-user-name">학습자</span>
+              <button onclick="promptEditNickname()" class="text-slate-400 hover:text-indigo-600 text-[10px]"><i class="fa-solid fa-pen"></i></button>
+            </div>
+            <div class="text-[10px] text-slate-500 font-medium">Lv.<span id="drawer-user-level">1</span>
+<span id="drawer-user-xp">0</span> XP</div>
+          </div>
+        </div>
+        <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-black text-[11px] flex items-center gap-1">
+          <i class="fa-solid fa-fire text-amber-500"></i> <span id="drawer-user-streak">0</span>일
+        </span>
+      </div>
+      <div class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+        <div id="drawer-level-progress" class="bg-indigo-600 h-full w-0 transition-all duration-300"></div>
+      </div>
+    </div>
+
+    <!-- Drawer Navigation Links -->
+    <div class="flex-1 overflow-y-auto p-4 space-y-5">
+      <!-- Group: Social & Competitive -->
+      <div>
+        <p class="text-[11px] font-black text-rose-500 uppercase tracking-widest px-3 mb-2 flex items-center gap-1.5">
+          <i class="fa-solid fa-swords"></i> 실시간 랭킹 & 대전
+        </p>
+        <div class="space-y-1">
+          <button onclick="selectMode('battle')" class="w-full text-left px-3.5 py-3 rounded-xl text-sm font-semibold flex items-center gap-3 hover:bg-rose-50 hover:text-rose-600 text-slate-700 transition" id="drawer-btn-battle">
+            <div class="w-7 h-7 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center"><i class="fa-solid fa-gamepad"></i></div>
+            <span>실시간 멀티 단어 대전 (최대 10인)</span>
+          </button>
+          <button onclick="selectMode('leaderboard')" class="w-full text-left px-3.5 py-3 rounded-xl text-sm font-semibold flex items-center gap-3 hover:bg-amber-50 hover:text-amber-700 text-slate-700 transition" id="drawer-btn-leaderboard">
+            <div class="w-7 h-7 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center"><i class="fa-solid fa-trophy"></i></div>
+            <span>주간 랭킹 보드</span>
+          </button>
+          <button onclick="selectMode('badges')" class="w-full text-left px-3.5 py-3 rounded-xl text-sm font-semibold flex items-center gap-3 hover:bg-purple-50 hover:text-purple-700 text-slate-700 transition" id="drawer-btn-badges">
+            <div class="w-7 h-7 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center"><i class="fa-solid fa-medal"></i></div>
+            <span>업적 & 배지 도감</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Group 1 -->
+      <div>
+        <p class="text-[11px] font-black text-slate-400 uppercase tracking-widest px-3 mb-2">액션 & 스피드</p>
+        <div class="space-y-1">
+          <button onclick="selectMode('quiz')" class="w-full text-left px-3.5 py-3 rounded-xl text-sm font-semibold flex items-center gap-3 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 transition" id="drawer-btn-quiz">
+            <div class="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center"><i class="fa-solid fa-bolt"></i></div>
+            <span>4지선다 스피드 퀴즈</span>
+          </button>
+          <button onclick="selectMode('rain')" class="w-full text-left px-3.5 py-3 rounded-xl text-sm font-semibold flex items-center gap-3 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 transition" id="drawer-btn-rain">
+            <div class="w-7 h-7 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center"><i class="fa-solid fa-cloud-arrow-down"></i></div>
+            <span>워드 레인 디펜스</span>
+          </button>
+          <button onclick="selectMode('tf')" class="w-full text-left px-3.5 py-3 rounded-xl text-sm font-semibold flex items-center gap-3 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 transition" id="drawer-btn-tf">
+            <div class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center"><i class="fa-solid fa-circle-question"></i></div>
+            <span>OX 스피드 판정</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Group 2 -->
+      <div>
+        <p class="text-[11px] font-black text-slate-400 uppercase tracking-widest px-3 mb-2">음성 & 발음 코칭</p>
+        <div class="space-y-1">
+          <button onclick="selectMode('autoplay')" class="w-full text-left px-3.5 py-3 rounded-xl text-sm font-semibold flex items-center gap-3 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 transition" id="drawer-btn-autoplay">
+            <div class="w-7 h-7 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center"><i class="fa-solid fa-forward"></i></div>
+            <span>연속 자동 듣기</span>
+          </button>
+          <button onclick="selectMode('aicoach')" class="w-full text-left px-3.5 py-3 rounded-xl text-sm font-semibold flex items-center gap-3 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 transition" id="drawer-btn-aicoach">
+            <div class="w-7 h-7 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center"><i class="fa-solid fa-microphone-lines"></i></div>
+            <span>AI 발음 코치</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Group 3 -->
+      <div>
+        <p class="text-[11px] font-black text-slate-400 uppercase tracking-widest px-3 mb-2">퍼즐 & 철자 트레이닝</p>
+        <div class="space-y-1">
+          <button onclick="selectMode('cardmatch')" class="w-full text-left px-3.5 py-3 rounded-xl text-sm font-semibold flex items-center gap-3 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 transition" id="drawer-btn-cardmatch">
+            <div class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center"><i class="fa-solid fa-clone"></i></div>
+            <span>카드 짝 맞추기</span>
+          </button>
+          <button onclick="selectMode('scramble')" class="w-full text-left px-3.5 py-3 rounded-xl text-sm font-semibold flex items-center gap-3 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 transition" id="drawer-btn-scramble">
+            <div class="w-7 h-7 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center"><i class="fa-solid fa-cubes"></i></div>
+            <span>단어 철자 조립 (Scramble)</span>
+          </button>
+          <button onclick="selectMode('blank')" class="w-full text-left px-3.5 py-3 rounded-xl text-sm font-semibold flex items-center gap-3 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 transition" id="drawer-btn-blank">
+            <div class="w-7 h-7 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center"><i class="fa-solid fa-spell-check"></i></div>
+            <span>빈칸 단어 입력</span>
+          </button>
+          <button onclick="selectMode('listening')" class="w-full text-left px-3.5 py-3 rounded-xl text-sm font-semibold flex items-center gap-3 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 transition" id="drawer-btn-listening">
+            <div class="w-7 h-7 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center"><i class="fa-solid fa-headphones"></i></div>
+            <span>리스닝 섀도잉 퀴즈</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Group 4 -->
+      <div>
+        <p class="text-[11px] font-black text-slate-400 uppercase tracking-widest px-3 mb-2">학습 자료 & 설정</p>
+        <div class="space-y-1">
+          <button onclick="selectMode('flashcard')" class="w-full text-left px-3.5 py-3 rounded-xl text-sm font-semibold flex items-center gap-3 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 transition" id="drawer-btn-flashcard">
+            <div class="w-7 h-7 rounded-lg bg-violet-100 text-violet-600 flex items-center justify-center"><i class="fa-solid fa-layer-group"></i></div>
+            <span>3D 플래시카드</span>
+          </button>
+          <button onclick="selectMode('vlist')" class="w-full text-left px-3.5 py-3 rounded-xl text-sm font-semibold flex items-center gap-3 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 transition" id="drawer-btn-vlist">
+            <div class="w-7 h-7 rounded-lg bg-pink-100 text-pink-600 flex items-center justify-center"><i class="fa-solid fa-book-bookmark"></i></div>
+            <span>전체 단어장</span>
+          </button>
+          <button onclick="selectMode('settings')" class="w-full text-left px-3.5 py-3 rounded-xl text-sm font-semibold flex items-center gap-3 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 transition" id="drawer-btn-settings">
+            <div class="w-7 h-7 rounded-lg bg-teal-100 text-teal-600 flex items-center justify-center"><i class="fa-solid fa-gear"></i></div>
+            <span>단어 설정 & 사진 업로드</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Drawer Footer -->
+    <div class="p-3 bg-slate-50 border-t border-slate-100 text-center text-[11px] text-slate-400 font-mono">
+      User ID: <span id="drawer-uid-full" class="font-bold text-slate-600">connecting...</span>
+      <div id="net-status-indicator" class="text-[10px] text-emerald-600 font-sans mt-0.5 flex items-center justify-center gap-1">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span>실시간 네트워크: 온라인 준비 완료</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Top Sticky Header -->
+  <header class="w-full bg-white sticky top-0 z-40 px-4 sm:px-8 py-3 border-b border-slate-200">
+    <div class="max-w-5xl mx-auto flex items-center justify-between gap-3">
+      <!-- Left: Drawer Toggle & Mode Title -->
+      <div class="flex items-center gap-3">
+        <button onclick="openDrawer()" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition active:scale-95 shadow-sm" title="메뉴 열기">
+          <i class="fa-solid fa-bars text-lg"></i>
+        </button>
+        <div>
+          <span class="text-[10px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">Eagle C2 Unit 2 Lesson 3</span>
+          <h1 id="header-active-title" class="text-sm sm:text-base font-black text-slate-800 leading-tight">실시간 멀티 단어 대전</h1>
+        </div>
+      </div>
+
+      <!-- Right: User Stats & Audio -->
+      <div class="flex items-center gap-2 sm:gap-4">
+        <div class="hidden sm:flex items-center gap-3 text-xs font-bold text-slate-600 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+          <span class="flex items-center gap-1 text-amber-600 font-black">
+            <i class="fa-solid fa-fire text-amber-500"></i> <span id="header-streak-count">0</span>일 연속
+          </span>
+          <span class="text-slate-300">|</span>
+          <span>Lv.<span id="header-level" class="text-indigo-600 font-black">1</span></span>
+          <span class="text-slate-300">|</span>
+          <span><span id="header-xp" class="text-indigo-600 font-black">0</span> XP</span>
+        </div>
+
+        <button id="tts-toggle-btn" onclick="toggleAudio()" class="px-2.5 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 text-xs font-bold flex items-center gap-1.5 transition">
+          <i id="tts-icon" class="fa-solid fa-volume-high text-indigo-600"></i>
+          <span class="hidden sm:inline">음성</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-4 sm:px-8 pt-6 w-full flex-1">
+    <!-- ==================== MODE: REALTIME MULTI BATTLE ==================== -->
+    <section id="view-battle" class="w-full max-w-2xl mx-auto flex flex-col items-center">
+      <div class="w-full clean-card p-6 sm:p-8 rounded-3xl mb-6 text-center relative overflow-hidden">
+        <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-rose-50 rounded-full blur-2xl pointer-events-none"></div>
+
+        <div class="inline-flex items-center gap-2 px-3 py-1 bg-rose-50 border border-rose-200 rounded-full text-rose-700 font-black text-xs uppercase tracking-wider mb-3">
+          <i class="fa-solid fa-users text-rose-600 animate-pulse"></i> Real-time Multi Arena (최대 10인)
+        </div>
+        <h2 class="text-2xl sm:text-3xl font-black text-slate-900 mb-2">실시간 멀티 단어 퀴즈 대전</h2>
+        <p class="text-xs sm:text-sm text-slate-500 mb-6">친구들과 함께 최대 10명이 실시간으로 단어 퀴즈 순위를 겨루세요!</p>
+
+        <!-- Battle Lobby State (No Active Battle) -->
+        <div id="battle-lobby-controls" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-md mx-auto">
+            <button onclick="openCreateBattleModal()" class="py-3.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl shadow-md transition flex items-center justify-center gap-2 active:scale-95">
+              <i class="fa-solid fa-plus-circle"></i> 새 대전방 만들기 (단어 지정)
+            </button>
+            <button onclick="quickJoinBattle()" class="py-3.5 px-4 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-2xl shadow-md transition flex items-center justify-center gap-2 active:scale-95">
+              <i class="fa-solid fa-bolt"></i> 방 번호로 참가
+            </button>
+          </div>
+
+          <!-- Join by Code -->
+          <div class="max-w-md mx-auto flex gap-2 pt-2">
+            <input type="text" id="battle-room-input" placeholder="대기방 코드 6자리 입력" class="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-center text-xs sm:text-sm font-bold uppercase tracking-widest focus:outline-none focus:border-indigo-600">
+            <button onclick="joinBattleByCode()" class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition">참가</button>
+          </div>
+        </div>
+
+        <!-- Waiting For Players Lobby UI (Multiplayer) -->
+        <div id="battle-waiting-box" class="hidden py-4 flex flex-col items-center w-full">
+          <div class="w-full flex items-center justify-between p-3.5 bg-slate-50 rounded-2xl border border-slate-200 mb-4">
+            <div class="text-left">
+              <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">방 코드</span>
+              <div class="flex items-center gap-2">
+                <span id="battle-display-code" class="text-indigo-600 font-mono text-xl font-black">------</span>
+                <button onclick="copyBattleRoomCode()" class="text-xs text-slate-400 hover:text-indigo-600 font-bold" title="코드 복사">
+                  <i class="fa-regular fa-copy"></i>
+                </button>
+              </div>
+            </div>
+            <div class="text-right">
+              <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">참가 인원</span>
+              <div class="text-sm font-black text-rose-600">
+                <span id="battle-waiting-count">1</span> / 10명
+              </div>
+            </div>
+          </div>
+
+          <div id="battle-custom-word-badge" class="mb-3 inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-full border border-indigo-200">
+            <i class="fa-solid fa-list-check"></i> 출제 단어 수: <span id="battle-custom-word-count">5</span>문제
+          </div>
+          <div id="battle-reward-mode-badge" class="mb-3 ml-1.5 inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-800 text-xs font-bold rounded-full border border-amber-200">
+            <i class="fa-solid fa-bone text-amber-600"></i> <span id="battle-reward-mode-text">강아지 룰렛 보상: ON</span>
+          </div>
+
+          <!-- Participant List -->
+          <div class="w-full mb-4">
+            <div class="text-xs font-bold text-slate-600 mb-2 text-left px-1 flex items-center justify-between">
+              <span>참가자 목록 (<span id="battle-current-joined-count">1</span>/10)</span>
+              <div class="flex items-center gap-1.5">
+                <button type="button" onclick="addSimulatedPlayer()" class="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-bold transition flex items-center gap-1 shadow-sm active:scale-95" title="혼자 테스트할 수 있도록 연습용 AI 도전자(봇)를 추가합니다">
+                  <i class="fa-solid fa-robot text-xs"></i> AI 도전자 추가
+                </button>
+              </div>
+            </div>
+            <div id="battle-waiting-players-list" class="grid grid-cols-2 sm:grid-cols-3 gap-2 w-full max-h-48 overflow-y-auto p-1">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Host / Guest Controls -->
+          <div class="flex flex-col sm:flex-row gap-2 w-full max-w-sm">
+            <button id="battle-host-start-btn" onclick="hostStartBattleGame()" class="hidden flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs shadow-md transition flex items-center justify-center gap-1.5 active:scale-95">
+              <i class="fa-solid fa-play"></i> 게임 시작하기
+            </button>
+            <div id="battle-guest-waiting-msg" class="hidden flex-1 py-2.5 text-xs font-bold text-slate-500 bg-slate-100 rounded-xl flex items-center justify-center gap-2">
+              <div class="w-3.5 h-3.5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+              <span>방장이 게임을 시작하기를 기다리는 중...</span>
+            </div>
+            <button onclick="cancelBattleRoom()" class="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold rounded-xl transition">나가기</button>
+          </div>
+        </div>
+
+        <!-- Active Multi Battle Arena UI -->
+        <div id="battle-active-arena" class="hidden w-full pt-2">
+          <!-- Realtime Live Leaderboard (All players up to 10) -->
+          <div class="mb-5 p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+            <div class="flex items-center justify-between mb-2 px-1 text-xs font-bold text-slate-700">
+              <span class="flex items-center gap-1.5">
+                <i class="fa-solid fa-ranking-star text-amber-500"></i> 실시간 순위 현황 (<span id="battle-arena-player-count">2</span>명)
+              </span>
+              <span class="text-[10px] text-slate-400 font-semibold" id="battle-my-rank-indicator">내 순위: 계산 중</span>
+            </div>
+            <div id="battle-multi-leaderboard" class="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+
+          <!-- Battle Question Box -->
+          <div class="p-6 rounded-3xl clean-card border border-indigo-100 mb-4">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[11px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">
+                Q <span id="battle-round-num">1</span> / <span id="battle-total-rounds">5</span>
+              </span>
+              <span class="text-xs font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">
+                내 점수: <strong id="battle-my-live-score" class="text-indigo-700 text-sm">0</strong>점
+              </span>
+            </div>
+            <h3 id="battle-question-word" class="text-2xl sm:text-3xl font-black text-slate-900 mt-3 mb-1">
+              covet money
+            </h3>
+            <p class="text-xs text-slate-400 font-medium">올바른 뜻을 신속하게 선택하세요!</p>
+          </div>
+
+          <!-- Battle Options Grid -->
+          <div id="battle-options-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3"></div>
+          <div id="battle-feedback" class="h-6 text-xs font-bold opacity-0 transition-opacity"></div>
+
+          <!-- Mystery Puppy Reward Modal / Container (Shown upon correct answer) -->
+          <div id="battle-puppy-modal" class="hidden my-4 p-5 rounded-3xl bg-amber-50/90 border-2 border-amber-300 shadow-lg text-center animate-fade-in">
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-200/70 text-amber-900 text-xs font-black uppercase mb-2">
+              <i class="fa-solid fa-bone text-amber-700 animate-bounce"></i> 정답 보너스 럭키 박스
+            </div>
+            <h4 class="text-base sm:text-lg font-black text-slate-800 mb-1">강아지 3마리 중 하나를 고르세요!</h4>
+            <p class="text-xs text-slate-600 mb-4 font-semibold">보너스 점수, 감점 폭탄, 또는 다른 참가자와의 점수 교환이 숨겨져 있습니다!</p>
+            
+            <div class="grid grid-cols-3 gap-3 max-w-sm mx-auto" id="battle-puppy-cards">
+              <!-- Puppy Card 1 -->
+              <button onclick="pickPuppyReward(0)" class="puppy-select-btn p-3 bg-white hover:bg-amber-100 border-2 border-amber-200 hover:border-amber-400 rounded-2xl shadow-sm transition transform hover:-translate-y-1 active:scale-95 flex flex-col items-center">
+                <span class="text-4xl mb-1 filter drop-shadow">🐶</span>
+                <span class="text-xs font-bold text-slate-700">시바견</span>
+              </button>
+              <!-- Puppy Card 2 -->
+              <button onclick="pickPuppyReward(1)" class="puppy-select-btn p-3 bg-white hover:bg-amber-100 border-2 border-amber-200 hover:border-amber-400 rounded-2xl shadow-sm transition transform hover:-translate-y-1 active:scale-95 flex flex-col items-center">
+                <span class="text-4xl mb-1 filter drop-shadow">🐕</span>
+                <span class="text-xs font-bold text-slate-700">골든리트리버</span>
+              </button>
+              <!-- Puppy Card 3 -->
+              <button onclick="pickPuppyReward(2)" class="puppy-select-btn p-3 bg-white hover:bg-amber-100 border-2 border-amber-200 hover:border-amber-400 rounded-2xl shadow-sm transition transform hover:-translate-y-1 active:scale-95 flex flex-col items-center">
+                <span class="text-4xl mb-1 filter drop-shadow">🦮</span>
+                <span class="text-xs font-bold text-slate-700">푸들</span>
+              </button>
+            </div>
+
+            <!-- Reward Result Banner -->
+            <div id="puppy-reward-result" class="hidden mt-4 p-3 rounded-xl font-black text-sm transition-all duration-300"></div>
+          </div>
+
+          <!-- Wrong Answer 3s Cooldown Banner -->
+          <div id="battle-cooldown-banner" class="hidden my-3 p-4 rounded-2xl bg-rose-50 border border-rose-300 text-center animate-pulse">
+            <div class="text-rose-600 font-black text-sm flex items-center justify-center gap-2">
+              <i class="fa-solid fa-clock-rotate-left"></i>
+              <span>오답 패널티: <strong id="battle-cooldown-seconds" class="text-base font-black">3</strong>초 동안 대기해야 합니다!</span>
+            </div>
+            <div class="w-full bg-rose-200 h-1.5 rounded-full overflow-hidden mt-2.5">
+              <div id="battle-cooldown-bar" class="bg-rose-500 h-full w-full transition-all duration-1000 ease-linear"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Battle Result Overlay Modal Inside Arena -->
+        <div id="battle-result-box" class="hidden py-6 flex flex-col items-center w-full">
+          <div id="battle-result-icon" class="w-16 h-16 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-3xl mb-3">
+            <i class="fa-solid fa-trophy"></i>
+          </div>
+          <h3 id="battle-result-title" class="text-2xl font-black text-slate-900 mb-1">최종 대전 결과</h3>
+          <p id="battle-result-desc" class="text-xs font-semibold text-slate-500 mb-4">+50 XP 획득</p>
+
+          <!-- Final Multi Standing Table -->
+          <div id="battle-final-standings" class="w-full max-w-md bg-slate-50 p-3.5 rounded-2xl border border-slate-200 mb-6 space-y-1.5 text-xs"></div>
+
+          <button onclick="resetBattleView()" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs shadow-md transition">
+            로비로 돌아가기
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== MODE: LEADERBOARD ==================== -->
+    <section id="view-leaderboard" class="hidden w-full max-w-2xl mx-auto flex flex-col items-center">
+      <div class="w-full clean-card p-6 rounded-3xl mb-6">
+        <div class="flex items-center justify-between mb-4 pb-4 border-b border-slate-100">
+          <div>
+            <h2 class="text-xl font-black text-slate-900 flex items-center gap-2">
+              <i class="fa-solid fa-trophy text-amber-500"></i> 주간 랭킹 보드
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">학습과 대전을 통해 획득한 총 경험치(XP) 순위입니다.</p>
+          </div>
+          <button onclick="refreshLeaderboard()" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center text-xs transition" title="새로고침">
+            <i class="fa-solid fa-rotate-right"></i>
+          </button>
+        </div>
+
+        <!-- Top 3 Podium (Visual) -->
+        <div id="podium-container" class="grid grid-cols-3 gap-2 sm:gap-4 mb-6 pt-4 text-center items-end"></div>
+
+        <!-- Full List Container -->
+        <div id="leaderboard-list" class="space-y-2">
+          <div class="text-center py-8 text-xs text-slate-400">랭킹을 불러오는 중...</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== MODE: BADGES & ACHIEVEMENTS ==================== -->
+    <section id="view-badges" class="hidden w-full max-w-2xl mx-auto flex flex-col items-center">
+      <div class="w-full clean-card p-6 sm:p-8 rounded-3xl mb-6">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h2 class="text-xl font-black text-slate-900 flex items-center gap-2">
+              <i class="fa-solid fa-medal text-purple-600"></i> 업적 및 배지 도감
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">단어를 학습하고 조건을 달성하여 특별한 배지를 모아보세요!</p>
+          </div>
+          <div class="text-right">
+            <span class="text-xs text-slate-400 font-bold uppercase">획득 현황</span>
+            <div class="text-sm font-black text-indigo-600"><span id="badge-unlocked-count">0</span> / 8</div>
+          </div>
+        </div>
+
+        <div id="badges-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
+      </div>
+    </section>
+
+    <!-- ==================== MODE 1: SPEED QUIZ ==================== -->
+    <section id="view-quiz" class="w-full flex flex-col items-center max-w-2xl mx-auto">
+      <div class="w-full flex items-center justify-between mb-4 clean-card p-4 rounded-2xl">
+        <div class="flex items-center gap-3">
+          <span class="text-xs font-bold px-3 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+            문제 <span id="quiz-current-num" class="text-indigo-600 font-black">1</span> / <span id="quiz-total-num">15</span>
+          </span>
+          <div class="flex items-center gap-1.5 text-amber-600 text-xs font-extrabold">
+            <i class="fa-solid fa-fire text-amber-500 animate-pulse"></i>
+            <span>연속 <span id="quiz-streak">0</span></span>
+          </div>
+        </div>
+        <div class="flex items-center gap-4">
+          <div class="text-right">
+            <div class="text-[10px] text-slate-400 tracking-widest uppercase font-bold">점수</div>
+            <div id="quiz-score" class="text-base sm:text-lg font-black text-indigo-600">0</div>
+          </div>
+          <!-- Timer Circle -->
+          <div class="relative w-10 h-10 flex items-center justify-center">
+            <svg class="w-full h-full -rotate-90" viewBox="0 0 36 36">
+              <path class="text-slate-200" stroke-width="3.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+              <path id="quiz-timer-circle" class="text-indigo-600 transition-all duration-100 ease-linear" stroke-width="3.5" stroke-dasharray="100, 100" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+            </svg>
+            <span id="quiz-timer-text" class="absolute text-xs font-black text-slate-700">10</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Question Card -->
+      <div class="w-full clean-card p-8 rounded-3xl text-center mb-5 relative border-indigo-100 shadow-sm">
+        <div class="absolute top-4 right-4 flex items-center gap-1.5">
+          <button onclick="playCurrentWordAudio()" class="w-8 h-8 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-indigo-600 transition flex items-center justify-center" title="발음 듣기">
+            <i class="fa-solid fa-volume-high text-xs"></i>
+          </button>
+          <button id="quiz-star-btn" onclick="toggleFavoriteCurrent()" class="w-8 h-8 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-amber-500 transition flex items-center justify-center" title="중요 단어 표시">
+            <i class="fa-regular fa-star text-xs"></i>
+          </button>
+        </div>
+        <span class="text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">
+          다음 표현의 올바른 한국어 뜻은?
+        </span>
+        <h2 id="quiz-question-word" class="text-2xl sm:text-4xl font-black text-slate-900 mt-6 mb-2 tracking-tight">
+          covet money
+        </h2>
+      </div>
+
+      <!-- Options Grid -->
+      <div id="quiz-options-grid" class="w-full grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4"></div>
+
+      <!-- Feedback -->
+      <div id="quiz-feedback" class="h-10 w-full flex items-center justify-center text-sm font-bold rounded-xl opacity-0 transition-opacity duration-200"></div>
+    </section>
+
+    <!-- ==================== MODE 2: FALLING WORD RAIN ==================== -->
+    <section id="view-rain" class="hidden w-full max-w-2xl mx-auto flex flex-col items-center">
+      <div class="w-full flex items-center justify-between mb-4 clean-card p-4 rounded-2xl">
+        <div class="flex items-center gap-2">
+          <span class="px-3 py-1 bg-sky-100 text-sky-700 font-bold text-xs rounded-full">워드 레인</span>
+          <span class="text-xs text-slate-500 hidden sm:inline">단어가 바닥에 닿기 전 영단어를 입력하세요!</span>
+        </div>
+        <div class="flex items-center gap-4 text-xs font-bold">
+          <div>생명: <span id="rain-lives" class="text-rose-500">❤️❤️❤️</span></div>
+          <div>점수: <span id="rain-score" class="text-indigo-600 text-sm font-black">0</span></div>
+          <button onclick="restartRainGame()" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-600">
+            <i class="fa-solid fa-rotate-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Canvas Area -->
+      <div class="relative w-full h-80 sm:h-96 rounded-3xl clean-card border border-slate-200 overflow-hidden mb-4" id="rain-arena">
+        <canvas id="rain-canvas" class="w-full h-full block"></canvas>
+        <div id="rain-game-overlay" class="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center hidden">
+          <h3 id="rain-game-title" class="text-2xl font-black text-rose-500 mb-1">게임 종료</h3>
+          <p id="rain-game-desc" class="text-sm font-semibold text-slate-600 mb-4">점수: 0점</p>
+          <button onclick="startRainGame()" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-md transition">다시 도전하기</button>
+        </div>
+      </div>
+
+      <!-- Typing Input -->
+      <form onsubmit="handleRainSubmit(event)" class="w-full flex gap-2">
+        <input 
+          type="text" 
+          id="rain-input" 
+          autocomplete="off" 
+          autocapitalize="off" 
+          spellcheck="false"
+          placeholder="떨어지는 뜻에 맞는 영단어를 입력하세요..." 
+          class="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 font-bold shadow-sm"
+        >
+        <button type="submit" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition shadow-sm">
+          입력
+        </button>
+      </form>
+    </section>
+
+    <!-- ==================== MODE 3: TRUE / FALSE SPEED RUSH ==================== -->
+    <section id="view-tf" class="hidden w-full max-w-xl mx-auto flex flex-col items-center">
+      <div class="w-full flex items-center justify-between mb-4 clean-card p-4 rounded-2xl">
+        <div class="flex items-center gap-2">
+          <span class="px-3 py-1 bg-emerald-100 text-emerald-700 font-bold text-xs rounded-full">OX 팩트체크</span>
+          <span class="text-xs text-slate-500">뜻과 표현이 맞는지 5초 내에 선택하세요!</span>
+        </div>
+        <div class="flex items-center gap-3 text-xs font-bold">
+          <div>점수: <span id="tf-score" class="text-indigo-600 text-sm font-black">0</span></div>
+          <div>시간: <span id="tf-timer" class="text-amber-600 text-sm font-black">5s</span></div>
+        </div>
+      </div>
+
+      <div class="w-full clean-card p-8 sm:p-10 rounded-3xl text-center mb-6 relative">
+        <span class="text-xs uppercase tracking-wider text-slate-400 font-bold">이 영어 표현의 뜻이 맞습니까?</span>
+        
+        <h2 id="tf-phrase" class="text-2xl sm:text-3xl font-black text-slate-900 mt-6 mb-3 tracking-tight">
+          covet money
+        </h2>
+
+        <div class="text-slate-300 text-lg mb-2"><i class="fa-solid fa-arrows-up-down"></i></div>
+
+        <div id="tf-displayed-meaning" class="text-xl sm:text-2xl font-black text-indigo-700 mb-4 bg-indigo-50/60 p-4 rounded-2xl border border-indigo-100">
+          돈을 탐내다
+        </div>
+
+        <div id="tf-feedback" class="h-6 text-sm font-bold opacity-0 transition-opacity"></div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="grid grid-cols-2 gap-4 w-full">
+        <button onclick="handleTFAnswer(true)" class="py-4 sm:py-5 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xl transition flex items-center justify-center gap-3 shadow-md shadow-emerald-500/20 active:scale-95">
+          <i class="fa-solid fa-circle-check text-2xl"></i> 맞음 (O)
+        </button>
+        <button onclick="handleTFAnswer(false)" class="py-4 sm:py-5 rounded-2xl bg-rose-500 hover:bg-rose-600 text-white font-black text-xl transition flex items-center justify-center gap-3 shadow-md shadow-rose-500/20 active:scale-95">
+          <i class="fa-solid fa-circle-xmark text-2xl"></i> 틀림 (X)
+        </button>
+      </div>
+    </section>
+
+    <!-- ==================== MODE 4: LISTENING & SHADOWING ==================== -->
+    <section id="view-listening" class="hidden w-full max-w-xl mx-auto flex flex-col items-center">
+      <div class="w-full flex items-center justify-between mb-4 clean-card p-4 rounded-2xl">
+        <div class="flex items-center gap-2">
+          <span class="px-3 py-1 bg-purple-100 text-purple-700 font-bold text-xs rounded-full">리스닝 퀴즈</span>
+          <span class="text-xs text-slate-500">발음을 듣고 맞는 표현을 선택하세요!</span>
+        </div>
+        <div class="text-xs font-bold text-indigo-600">
+          점수: <span id="listening-score" class="font-black">0</span>
+        </div>
+      </div>
+
+      <div class="w-full clean-card p-8 sm:p-10 rounded-3xl text-center mb-6">
+        <button onclick="playListeningAudio()" class="w-24 h-24 mx-auto rounded-full bg-indigo-600 text-white text-3xl shadow-xl shadow-indigo-600/30 hover:bg-indigo-500 active:scale-95 transition mb-6 animate-pulse flex items-center justify-center">
+          <i class="fa-solid fa-volume-high"></i>
+        </button>
+
+        <p class="text-xs text-slate-400 uppercase tracking-widest font-bold mb-1">소리를 듣고 정답을 클릭하세요</p>
+        <h4 class="text-sm text-slate-500">버튼을 누르면 발음을 다시 들을 수 있습니다</h4>
+      </div>
+
+      <div id="listening-options-grid" class="w-full grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3"></div>
+      <div id="listening-feedback" class="h-8 text-sm font-bold text-center opacity-0 transition-opacity"></div>
+    </section>
+
+    <!-- ==================== MODE: CONTINUOUS AUTOPLAY ==================== -->
+    <section id="view-autoplay" class="hidden w-full max-w-2xl mx-auto flex flex-col items-center">
+      <div class="w-full flex items-center justify-between mb-4 clean-card p-4 rounded-2xl">
+        <div class="flex items-center gap-2">
+          <span class="px-3 py-1 bg-amber-100 text-amber-800 font-bold text-xs rounded-full">연속 자동 듣기</span>
+          <span class="text-xs text-slate-500">단어와 한국어 뜻을 끊김 없이 연속으로 학습합니다.</span>
+        </div>
+        <div class="text-xs font-bold text-indigo-600">
+          <span id="autoplay-counter">1 / 40</span>
+        </div>
+      </div>
+
+      <!-- Current Word Stage Card -->
+      <div class="w-full clean-card p-8 sm:p-12 rounded-3xl text-center mb-6 relative">
+        <div class="text-xs uppercase tracking-widest text-slate-400 font-bold mb-3" id="autoplay-status-badge">
+          <i class="fa-solid fa-circle-play text-indigo-600 mr-1 animate-pulse"></i> 재생 중
+        </div>
+
+        <h2 id="autoplay-phrase" class="text-3xl sm:text-4xl font-black text-slate-900 mb-4 tracking-tight">
+          covet money
+        </h2>
+        <div class="inline-block px-5 py-2.5 bg-indigo-50 border border-indigo-100 rounded-2xl text-xl sm:text-2xl font-black text-indigo-700 mb-6">
+          <span id="autoplay-meaning">돈을 탐내다</span>
+        </div>
+
+        <!-- Progress Timeline Bar -->
+        <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden mb-4">
+          <div id="autoplay-word-progress" class="bg-indigo-600 h-full w-0 transition-all duration-300"></div>
+        </div>
+
+        <!-- Autoplay Controls -->
+        <div class="flex items-center justify-center gap-4 mt-6">
+          <button onclick="prevAutoplayWord()" class="w-12 h-12 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition active:scale-95">
+            <i class="fa-solid fa-backward-step"></i>
+          </button>
+          <button id="autoplay-toggle-btn" onclick="toggleAutoplayState()" class="w-16 h-16 rounded-3xl bg-indigo-600 hover:bg-indigo-500 text-white text-2xl flex items-center justify-center shadow-lg shadow-indigo-600/30 transition active:scale-95">
+            <i id="autoplay-play-icon" class="fa-solid fa-pause"></i>
+          </button>
+          <button onclick="nextAutoplayWord()" class="w-12 h-12 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition active:scale-95">
+            <i class="fa-solid fa-forward-step"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Settings Panel for Autoplay -->
+      <div class="w-full clean-card p-5 rounded-2xl flex flex-wrap items-center justify-around gap-4 text-xs font-semibold text-slate-600">
+        <div class="flex items-center gap-2">
+          <span>반복 간격:</span>
+          <select id="autoplay-interval" class="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-bold focus:outline-none">
+            <option value="2500">빠르게 (2.5초)</option>
+            <option value="3500" selected>보통 (3.5초)</option>
+            <option value="5000">여유롭게 (5초)</option>
+          </select>
+        </div>
+        <div class="flex items-center gap-2">
+          <span>재생 순서:</span>
+          <select id="autoplay-order" onchange="resetAutoplayOrder()" class="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-bold focus:outline-none">
+            <option value="sequential">순서대로</option>
+            <option value="shuffle">무작위 셔플</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== MODE: AI PRONUNCIATION COACH ==================== -->
+    <section id="view-aicoach" class="hidden w-full max-w-xl mx-auto flex flex-col items-center">
+      <div class="w-full flex items-center justify-between mb-4 clean-card p-4 rounded-2xl">
+        <div class="flex items-center gap-2">
+          <span class="px-3 py-1 bg-rose-100 text-rose-700 font-bold text-xs rounded-full">AI 발음 판정</span>
+          <span class="text-xs text-slate-500">원어민 발음을 듣고 직접 말해 Good/Bad 평가를 받아보세요!</span>
+        </div>
+        <div class="text-xs font-bold text-slate-600">
+          <span id="coach-progress">1 / 40</span>
+        </div>
+      </div>
+
+      <div class="w-full clean-card p-8 rounded-3xl text-center mb-6 relative">
+        <span class="text-xs uppercase tracking-wider text-slate-400 font-bold">목표 발음 표현</span>
+        
+        <h2 id="coach-phrase" class="text-2xl sm:text-4xl font-black text-slate-900 mt-4 mb-2 tracking-tight">
+          covet money
+        </h2>
+        <p id="coach-meaning" class="text-base font-bold text-indigo-600 mb-6">
+          돈을 탐내다
+        </p>
+
+        <!-- Speaker Button -->
+        <div class="flex justify-center gap-3 mb-8">
+          <button onclick="playCoachAudio()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs flex items-center gap-2 transition active:scale-95">
+            <i class="fa-solid fa-volume-high text-indigo-600"></i> 원어민 발음 듣기
+          </button>
+        </div>
+
+        <!-- Record Button -->
+        <div class="flex flex-col items-center justify-center mb-6">
+          <button id="coach-mic-btn" onclick="togglePronunciationRecording()" class="w-24 h-24 rounded-full bg-rose-500 hover:bg-rose-600 text-white text-3xl flex items-center justify-center shadow-xl shadow-rose-500/30 transition transform active:scale-95">
+            <i id="coach-mic-icon" class="fa-solid fa-microphone"></i>
+          </button>
+          <p id="coach-mic-tip" class="text-xs font-bold text-slate-400 mt-3">마이크 버튼을 누르고 말씀하세요</p>
+        </div>
+
+        <!-- Recognition & Judgment Result Card -->
+        <div id="coach-result-box" class="w-full p-4 rounded-2xl border border-slate-200 bg-slate-50 min-h-[90px] flex flex-col justify-center items-center">
+          <div class="text-xs font-semibold text-slate-400 mb-1">인식된 발음:</div>
+          <div id="coach-user-speech" class="text-base font-black text-slate-700 italic">"..."</div>
+          
+          <div id="coach-badge-container" class="mt-2 hidden">
+            <span id="coach-rating-badge" class="px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider">
+              GOOD!
+            </span>
+            <p id="coach-feedback-text" class="text-xs font-bold text-slate-500 mt-1.5"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation Arrows -->
+      <div class="flex items-center justify-between w-full max-w-xs">
+        <button onclick="prevCoachItem()" class="px-5 py-2.5 rounded-xl clean-card hover:bg-slate-50 font-bold text-xs text-slate-700 flex items-center gap-2">
+          <i class="fa-solid fa-chevron-left"></i> 이전 단어
+        </button>
+        <button onclick="nextCoachItem()" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-xs text-white flex items-center gap-2 shadow-sm">
+          다음 단어 <i class="fa-solid fa-chevron-right"></i>
+        </button>
+      </div>
+    </section>
+
+    <!-- ==================== MODE: SETTINGS & CUSTOM VOCAB ==================== -->
+    <section id="view-settings" class="hidden w-full max-w-3xl mx-auto flex flex-col items-center">
+      <div class="w-full clean-card p-4 rounded-2xl mb-6 flex justify-between items-center text-xs sm:text-sm">
+        <div class="flex items-center gap-2">
+          <span class="px-3 py-1 bg-teal-100 text-teal-800 font-bold rounded-full">단어장 설정</span>
+          <span class="text-slate-500 font-medium">단어를 직접 수정하거나 사진을 찍어 업로드하세요.</span>
+        </div>
+        <button onclick="restoreDefaultVocab()" class="text-xs text-rose-500 hover:underline font-bold">
+          기본 단어로 초기화
+        </button>
+      </div>
+
+      <!-- Tab Switcher Inside Settings -->
+      <div class="w-full grid grid-cols-2 gap-2 mb-4">
+        <button id="setting-tab-text-btn" onclick="switchSettingSubTab('text')" class="py-2.5 rounded-xl font-bold text-xs bg-indigo-600 text-white shadow-sm transition">
+          <i class="fa-solid fa-keyboard mr-1.5"></i> 텍스트 직접 입력
+        </button>
+        <button id="setting-tab-photo-btn" onclick="switchSettingSubTab('photo')" class="py-2.5 rounded-xl font-bold text-xs bg-slate-100 text-slate-600 hover:text-slate-900 transition">
+          <i class="fa-solid fa-camera mr-1.5"></i> 단어장 사진 업로드 (AI)
+        </button>
+      </div>
+
+      <!-- 1. Text Input Card -->
+      <div id="setting-subtab-text" class="w-full clean-card p-6 rounded-3xl mb-6">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="text-sm font-bold text-slate-800">단어 목록 붙여넣기 (영표현 : 한국어뜻)</h3>
+          <span class="text-[11px] text-slate-400">한 줄에 하나씩 입력</span>
+        </div>
+        <textarea id="custom-vocab-textarea" rows="9" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm font-mono text-slate-800 focus:outline-none focus:border-indigo-600 focus:bg-white transition" placeholder="예시:
+covet money : 돈을 탐내다
+extortion of money : 돈 갈취
+malicious gossip : 악의적 험담"></textarea>
+        <div class="flex justify-between items-center mt-4">
+          <span class="text-xs text-slate-400">구분 기호: ' : ', ' , ', 탭 키</span>
+          <button onclick="applyCustomTextVocab()" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-md transition">
+            <i class="fa-solid fa-check mr-1.5"></i> 새 단어장으로 적용
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. Photo / Image Upload Card -->
+      <div id="setting-subtab-photo" class="hidden w-full clean-card p-6 rounded-3xl mb-6">
+        <div class="flex justify-between items-center mb-3">
+          <div>
+            <h3 class="text-sm font-bold text-slate-800">단어 프린트물 / 교재 사진 올리기</h3>
+            <p class="text-xs text-slate-400 mt-0.5">Gemini AI가 사진 속 영어 단어와 한국어 뜻을 정확히 인식해 게임에 등록합니다.</p>
+          </div>
+        </div>
+
+        <label for="vocab-image-input" class="w-full border-2 border-dashed border-slate-300 hover:border-indigo-500 hover:bg-indigo-50/20 rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer transition">
+          <i class="fa-solid fa-cloud-arrow-up text-3xl text-indigo-500 mb-2"></i>
+          <span class="text-xs font-bold text-slate-700">여기를 클릭하여 단어 사진(JPG, PNG)을 선택하세요</span>
+          <span class="text-[11px] text-slate-400 mt-1">핸드폰 촬영 사진도 자동 최적화 후 고속으로 분석됩니다</span>
+          <input type="file" id="vocab-image-input" accept="image/*" class="hidden" onchange="handleVocabImageUpload(event)">
+        </label>
+
+        <div id="vocab-image-preview-container" class="mt-4 hidden flex flex-col items-center">
+          <img id="vocab-image-preview" src="" alt="단어 사진 미리보기" class="max-h-56 rounded-xl border border-slate-200 shadow-sm object-contain mb-3">
+          <button id="ai-extract-btn" onclick="analyzeVocabImageWithGemini()" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-2">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> AI로 단어 추출하고 게임에 적용하기
+          </button>
+        </div>
+
+        <div id="ai-extract-loading" class="hidden py-8 flex flex-col items-center justify-center">
+          <div class="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-3"></div>
+          <p class="text-xs font-bold text-indigo-600">Gemini AI가 사진 속 단어들을 분석 중입니다...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== MODE 5: CARD MATCHING GAME ==================== -->
+    <section id="view-cardmatch" class="hidden w-full max-w-4xl mx-auto flex flex-col items-center">
+      <div class="w-full flex flex-wrap items-center justify-between gap-4 clean-card p-4 rounded-2xl mb-6">
+        <div class="flex items-center gap-3">
+          <span class="px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">카드 짝 맞추기</span>
+          <span class="text-xs text-slate-500">영어 표현과 올바른 우리말 뜻 카드를 매칭하세요!</span>
+        </div>
+        <div class="flex items-center gap-4 text-xs sm:text-sm">
+          <div>시도: <span id="match-attempts" class="font-bold text-slate-700">0</span></div>
+          <div>남은 쌍: <span id="match-remaining" class="font-bold text-indigo-600">8</span></div>
+          <button onclick="startCardMatchGame()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+            <i class="fa-solid fa-rotate-right"></i> 다시 섞기
+          </button>
+        </div>
+      </div>
+
+      <div id="card-match-board" class="w-full grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 select-none"></div>
+    </section>
+
+    <!-- ==================== MODE 6: FILL-IN-THE-BLANK ==================== -->
+    <section id="view-blank" class="hidden w-full max-w-2xl mx-auto flex flex-col items-center">
+      <div class="w-full clean-card p-4 rounded-2xl mb-6 flex justify-between items-center text-xs sm:text-sm">
+        <div class="flex items-center gap-2">
+          <span class="px-3 py-1 bg-blue-100 text-blue-700 font-bold rounded-full">빈칸 철자 완성</span>
+          <span class="text-slate-500 font-medium">문맥에 들어갈 올바른 단어를 철자로 직접 입력하세요.</span>
+        </div>
+        <div class="text-slate-600 font-bold">
+          점수: <span id="blank-score" class="font-black text-indigo-600">0</span>
+        </div>
+      </div>
+
+      <div class="w-full clean-card p-8 rounded-3xl text-center mb-6">
+        <div class="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">한국어 뜻</div>
+        <h3 id="blank-korean" class="text-xl sm:text-2xl font-black text-indigo-600 mb-6">
+          돈을 탐내다
+        </h3>
+
+        <div id="blank-sentence-container" class="text-lg sm:text-2xl font-bold text-slate-800 mb-8 tracking-wide">
+          <span id="blank-sentence-display">______ money</span>
+        </div>
+
+        <form onsubmit="handleBlankSubmit(event)" class="max-w-md mx-auto flex flex-col sm:flex-row gap-3">
+          <input 
+            type="text" 
+            id="blank-input" 
+            autocomplete="off" 
+            autocapitalize="off" 
+            spellcheck="false"
+            placeholder="단어 직접 입력"
+            class="flex-1 px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 font-bold tracking-wider text-center sm:text-left shadow-sm transition"
+          >
+          <button type="submit" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2">
+            확인 <i class="fa-solid fa-arrow-right text-xs"></i>
+          </button>
+        </form>
+        <div class="mt-4 flex items-center justify-center">
+          <button onclick="skipBlankQuestion()" class="text-xs text-slate-400 hover:text-slate-600 transition font-medium">
+            건너뛰기 <i class="fa-solid fa-forward-step ml-0.5"></i>
+          </button>
+        </div>
+      </div>
+      <div id="blank-feedback" class="h-10 text-center text-sm font-bold opacity-0 transition-opacity duration-200"></div>
+    </section>
+
+    <!-- ==================== MODE 7: WORD SCRAMBLE ==================== -->
+    <section id="view-scramble" class="hidden w-full max-w-2xl mx-auto flex flex-col items-center">
+      <div class="w-full clean-card p-4 rounded-2xl mb-6 flex justify-between items-center text-xs sm:text-sm">
+        <div class="flex items-center gap-2">
+          <span class="px-3 py-1 bg-amber-100 text-amber-800 font-bold rounded-full">철자 조립 (Scramble)</span>
+          <span class="text-slate-500">흩어진 알파벳을 순서대로 눌러 단어를 완성하세요!</span>
+        </div>
+        <div class="text-slate-600 font-bold">
+          완성 단어: <span id="scramble-score" class="font-black text-amber-600">0</span>
+        </div>
+      </div>
+
+      <div class="w-full clean-card p-8 rounded-3xl text-center mb-6">
+        <div class="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">한국어 뜻 & 연어 문맥</div>
+        <h3 id="scramble-meaning" class="text-xl sm:text-2xl font-black text-slate-900 mb-2">돈을 탐내다</h3>
+        <p id="scramble-context" class="text-slate-500 text-sm font-semibold mb-6">______ money</p>
+
+        <!-- Current Assembled Word -->
+        <div class="mb-6 flex justify-center items-center gap-2 min-h-[52px] bg-slate-50 p-3 rounded-2xl border border-slate-200" id="scramble-assembled-slots"></div>
+
+        <!-- Scrambled Letter Tiles -->
+        <div class="flex flex-wrap justify-center gap-2 mb-6" id="scramble-letter-pool"></div>
+
+        <div class="flex items-center justify-center gap-3">
+          <button onclick="resetScrambleInput()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+            <i class="fa-solid fa-arrow-rotate-left"></i> 다시 입력
+          </button>
+          <button onclick="skipScramble()" class="px-4 py-2 bg-slate-50 hover:bg-slate-100 text-slate-500 rounded-xl text-xs font-medium transition">
+            건너뛰기 <i class="fa-solid fa-angles-right text-[10px]"></i>
+          </button>
+        </div>
+      </div>
+      <div id="scramble-feedback" class="h-10 text-center text-sm font-bold opacity-0 transition-opacity duration-200"></div>
+    </section>
+
+    <!-- ==================== MODE 8: FLASHCARDS ==================== -->
+    <section id="view-flashcard" class="hidden w-full max-w-xl mx-auto flex flex-col items-center">
+      <div class="w-full flex items-center justify-between mb-4 text-xs text-slate-500 font-medium">
+        <span id="fc-progress-text">카드 1 / 40</span>
+        <div class="flex items-center gap-1.5">
+          <span>카드를 클릭하여 뒤집기</span>
+          <i class="fa-solid fa-hand-pointer text-indigo-600 animate-bounce"></i>
+        </div>
+      </div>
+
+      <!-- 3D Flip Card -->
+      <div class="w-full h-80 sm:h-96 perspective-1000 cursor-pointer" onclick="flipFlashcard()">
+        <div id="flashcard-inner" class="relative w-full h-full transform-style-3d transition-transform duration-500 rounded-3xl">
+          <!-- FRONT -->
+          <div class="absolute inset-0 w-full h-full backface-hidden clean-card rounded-3xl p-8 flex flex-col justify-between border-slate-200 shadow-lg">
+            <div class="flex justify-between items-center text-xs text-slate-400">
+              <span class="font-bold text-indigo-600 tracking-wider uppercase">English Collocation</span>
+              <button onclick="event.stopPropagation(); playCurrentFCAudio();" class="w-8 h-8 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 transition flex items-center justify-center">
+                <i class="fa-solid fa-volume-high text-sm"></i>
+              </button>
+            </div>
+            
+            <div class="text-center my-auto">
+              <h3 id="fc-front-term" class="text-3xl sm:text-4xl font-black text-slate-900 mb-2">
+                covet money
+              </h3>
+            </div>
+
+            <div class="text-center text-xs text-slate-400 flex items-center justify-center gap-1">
+              <i class="fa-solid fa-repeat"></i> 클릭하여 우리말 뜻 확인
+            </div>
+          </div>
+
+          <!-- BACK -->
+          <div class="absolute inset-0 w-full h-full backface-hidden rotate-y-180 bg-slate-900 text-white rounded-3xl p-8 flex flex-col justify-between shadow-xl">
+            <div class="flex justify-between items-center text-xs text-slate-400">
+              <span class="font-bold text-emerald-400 tracking-wider uppercase">Korean Meaning</span>
+              <button onclick="event.stopPropagation(); toggleFavoriteCurrentFC();" class="w-8 h-8 rounded-xl bg-slate-800 text-slate-300 hover:text-amber-400 transition flex items-center justify-center">
+                <i id="fc-star-icon" class="fa-regular fa-star text-sm"></i>
+              </button>
+            </div>
+            
+            <div class="text-center my-auto">
+              <h3 id="fc-back-meaning" class="text-2xl sm:text-3xl font-black text-emerald-300 mb-2">
+                돈을 탐내다
+              </h3>
+              <div class="inline-block px-3 py-1 bg-slate-800 rounded-full text-xs text-slate-300 font-medium mt-2">
+                Eagle C2 debate • Unit 2 Lesson 3
+              </div>
+            </div>
+
+            <div class="text-center text-xs text-slate-400 flex items-center justify-center gap-1">
+              <i class="fa-solid fa-repeat"></i> 클릭하여 영어 표현 보기
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="flex items-center gap-3 mt-6">
+        <button onclick="prevFlashcard()" class="p-3.5 bg-white border border-slate-200 hover:bg-slate-50 rounded-2xl text-slate-600 transition shadow-sm">
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <button onclick="markFCMastered(true)" class="px-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl text-sm transition shadow-sm flex items-center gap-2">
+          <i class="fa-solid fa-check"></i> 외웠어요
+        </button>
+        <button onclick="markFCMastered(false)" class="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl text-sm transition flex items-center gap-2">
+          <i class="fa-solid fa-xmark"></i> 다시 학습
+        </button>
+        <button onclick="nextFlashcard()" class="p-3.5 bg-white border border-slate-200 hover:bg-slate-50 rounded-2xl text-slate-600 transition shadow-sm">
+          <i class="fa-solid fa-chevron-right"></i>
+        </button>
+      </div>
+    </section>
+
+    <!-- ==================== MODE 9: VOCABULARY LIST ==================== -->
+    <section id="view-vlist" class="hidden w-full max-w-4xl mx-auto flex flex-col">
+      <div class="w-full clean-card p-4 rounded-2xl mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="relative w-full sm:w-80">
+          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-slate-400 text-sm"></i>
+          <input 
+            type="text" 
+            id="vocab-search-input" 
+            oninput="renderVocabList()" 
+            placeholder="단어 또는 뜻 검색..." 
+            class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-600 focus:bg-white transition"
+          >
+        </div>
+        <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <button id="filter-all-btn" onclick="setVocabFilter('all')" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow-sm">전체 (40)</button>
+          <button id="filter-star-btn" onclick="setVocabFilter('star')" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:text-slate-900">⭐ 중요</button>
+          <button id="filter-unlearned-btn" onclick="setVocabFilter('unlearned')" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:text-slate-900">미완료</button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="vocab-items-container"></div>
+    </section>
+
+    <!-- ==================== GAME OVER MODAL ==================== -->
+    <div id="game-over-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+      <div class="bg-white max-w-md w-full p-6 sm:p-8 rounded-3xl border border-slate-200 text-center shadow-2xl">
+        <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 text-3xl">
+          <i class="fa-solid fa-trophy"></i>
+        </div>
+        <h3 class="text-2xl font-black text-slate-900 mb-1">학습 완료!</h3>
+        <p class="text-slate-500 text-xs mb-6">모든 문제를 마쳤습니다. 실력이 탄탄해지고 있습니다!</p>
+        
+        <div class="grid grid-cols-2 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 mb-6 text-center">
+          <div>
+            <div class="text-[11px] font-bold text-slate-400">최종 점수</div>
+            <div id="modal-final-score" class="text-xl font-black text-indigo-600">0</div>
+          </div>
+          <div>
+            <div class="text-[11px] font-bold text-slate-400">결과 / 획득 XP</div>
+            <div id="modal-final-acc" class="text-xl font-black text-emerald-600">+50 XP</div>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-2">
+          <button onclick="restartActiveGame()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-md transition">
+            다시 도전하기
+          </button>
+          <button onclick="closeModal(); selectMode('leaderboard');" class="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-sm transition">
+            랭킹 보드 확인하기
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Nickname Modal -->
+    <div id="nickname-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+      <div class="bg-white max-w-sm w-full p-6 rounded-3xl border border-slate-200 shadow-xl">
+        <h3 class="text-base font-bold text-slate-900 mb-2">닉네임 변경</h3>
+        <p class="text-xs text-slate-500 mb-4">랭킹과 대전에서 표시될 이름을 입력하세요.</p>
+        <input type="text" id="nickname-input" maxlength="12" placeholder="닉네임 입력 (최대 12자)" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 mb-4 focus:outline-none focus:border-indigo-600">
+        <div class="flex gap-2">
+          <button onclick="closeNicknameModal()" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition">취소</button>
+          <button onclick="saveNewNickname()" class="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition">저장</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Create Battle Room with Custom Vocab Modal -->
+    <div id="create-battle-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+      <div class="bg-white max-w-lg w-full p-6 sm:p-7 rounded-3xl border border-slate-200 shadow-2xl overflow-y-auto max-h-[90vh]">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-sm">
+              <i class="fa-solid fa-gamepad"></i>
+            </div>
+            <h3 class="text-base sm:text-lg font-black text-slate-900">대전방 만들기 & 단어 지정</h3>
+          </div>
+          <button onclick="closeCreateBattleModal()" class="text-slate-400 hover:text-slate-600 w-8 h-8 rounded-lg flex items-center justify-center">
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
+
+        <!-- Word Source Tabs -->
+        <div class="grid grid-cols-3 gap-1.5 p-1 bg-slate-100 rounded-2xl mb-4">
+          <button id="modal-tab-default-btn" onclick="switchBattleWordTab('default')" class="py-2 rounded-xl text-xs font-bold bg-white text-indigo-600 shadow-sm transition">
+            기본 단어장
+          </button>
+          <button id="modal-tab-typing-btn" onclick="switchBattleWordTab('typing')" class="py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 transition">
+            직접 타이핑
+          </button>
+          <button id="modal-tab-photo-btn" onclick="switchBattleWordTab('photo')" class="py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 transition">
+            사진 업로드(AI)
+          </button>
+        </div>
+
+        <!-- 1. Default Vocab Tab Content -->
+        <div id="battle-tab-default" class="space-y-3 mb-4">
+          <p class="text-xs text-slate-500 font-medium">현재 등록된 단어 목록에서 문제를 무작위로 추출하여 대전을 생성합니다.</p>
+        </div>
+
+        <!-- 2. Typing Tab Content -->
+        <div id="battle-tab-typing" class="space-y-2 mb-4 hidden">
+          <label class="text-xs font-bold text-slate-700">단어 직접 입력 (한 줄에 '영어 : 한국어 뜻')</label>
+          <textarea id="battle-custom-typing-text" rows="5" placeholder="covet money : 돈을 탐내다&#10;extortion of money : 돈 갈취&#10;malicious gossip : 악의적 험담" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-800 focus:outline-none focus:border-indigo-600"></textarea>
+          <span class="text-[11px] text-slate-400">구분 기호: ' : ', ' , ', 탭 키</span>
+        </div>
+
+        <!-- 3. Photo Upload Tab Content -->
+        <div id="battle-tab-photo" class="space-y-3 mb-4 hidden">
+          <label for="battle-photo-file-input" class="border-2 border-dashed border-slate-300 hover:border-indigo-500 rounded-2xl p-5 flex flex-col items-center justify-center cursor-pointer transition">
+            <i class="fa-solid fa-cloud-arrow-up text-2xl text-indigo-500 mb-1"></i>
+            <span class="text-xs font-bold text-slate-700">시험지/단어장 사진(JPG, PNG) 선택</span>
+            <input type="file" id="battle-photo-file-input" accept="image/*" class="hidden" onchange="handleBattlePhotoSelected(event)">
+          </label>
+          <div id="battle-photo-preview-box" class="hidden flex flex-col items-center gap-2">
+            <img id="battle-photo-preview-img" src="" alt="사진 미리보기" class="max-h-36 rounded-xl border object-contain">
+            <button id="battle-photo-analyze-btn" onclick="analyzeBattlePhotoWithGemini()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5">
+              <i class="fa-solid fa-wand-magic-sparkles"></i> AI로 단어 추출하기
+            </button>
+          </div>
+          <div id="battle-photo-loading" class="hidden py-4 text-center text-xs font-bold text-indigo-600 flex items-center justify-center gap-2">
+            <div class="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+            <span>Gemini AI가 사진을 판독 중입니다...</span>
+          </div>
+          <div id="battle-photo-extracted-status" class="hidden text-xs font-bold text-emerald-600 p-2.5 bg-emerald-50 rounded-xl border border-emerald-200 text-center"></div>
+        </div>
+
+        <!-- Question Count Selector (Unrestricted) -->
+        <div class="pt-3 border-t border-slate-100 mb-5">
+          <label class="block text-xs font-bold text-slate-700 mb-2">출제 문제 수 설정</label>
+          <div class="flex items-center gap-2 mb-2">
+            <input type="number" id="battle-room-question-input" min="1" value="5" placeholder="문제 수 입력" class="w-28 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-center text-xs font-bold focus:outline-none focus:border-indigo-600">
+            <span class="text-xs text-slate-500 font-semibold">문제</span>
+            <div class="flex-1 flex gap-1.5 justify-end">
+              <button type="button" onclick="setBattleQuestionCount(5)" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-[11px] font-bold text-slate-600">5문제</button>
+              <button type="button" onclick="setBattleQuestionCount(10)" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-[11px] font-bold text-slate-600">10문제</button>
+              <button type="button" onclick="setBattleQuestionAll()" class="px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-[11px] font-bold text-indigo-700">전체 (무제한)</button>
+            </div>
+          </div>
+          <p class="text-[11px] text-slate-400 mb-4">숫자를 직접 입력하거나, '전체 (무제한)'를 누르면 준비된 모든 단어가 출제됩니다.</p>
+
+          <!-- Reward Mode Selection (Puppy Reward ON / OFF) -->
+          <label class="block text-xs font-bold text-slate-700 mb-2">게임 보상 방식 선택</label>
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" id="battle-reward-mode-on-btn" onclick="selectBattlePuppyRewardMode(true)" class="p-3 rounded-2xl border-2 border-amber-400 bg-amber-50/80 text-left transition flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-xl bg-amber-200 text-amber-800 flex items-center justify-center text-base">🐶</div>
+              <div>
+                <div class="text-xs font-black text-amber-950">강아지 보상 모드</div>
+                <div class="text-[10px] text-amber-800 font-medium">정답 시 3마리 강아지 룰렛</div>
+              </div>
+            </button>
+            <button type="button" id="battle-reward-mode-off-btn" onclick="selectBattlePuppyRewardMode(false)" class="p-3 rounded-2xl border-2 border-slate-200 bg-slate-50 text-left transition flex items-center gap-2.5 opacity-70 hover:opacity-100">
+              <div class="w-8 h-8 rounded-xl bg-slate-200 text-slate-700 flex items-center justify-center text-sm font-black">⚡</div>
+              <div>
+                <div class="text-xs font-bold text-slate-800">일반 퀴즈 모드</div>
+                <div class="text-[10px] text-slate-500 font-medium">보상 없이 빠른 스피드전</div>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Modal Actions -->
+        <div class="flex gap-2">
+          <button onclick="closeCreateBattleModal()" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold rounded-xl transition">
+            취소
+          </button>
+          <button onclick="confirmAndCreateBattleRoom()" class="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-check"></i> 방 만들기 완료
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ================= REALTIME GLOBAL NETWORKING & DATA MODULE ================= -->
+  <script>
+    // Local unique ID & Nickname
+    let myUserId = localStorage.getItem('eagle_user_uid');
+    if (!myUserId) {
+      myUserId = 'user_' + Math.random().toString(36).substring(2, 9);
+      try { localStorage.setItem('eagle_user_uid', myUserId); } catch(e){}
+    }
+
+    let savedNick = localStorage.getItem('eagle_user_nick');
+    let myNickname = savedNick || ('학습자_' + myUserId.substring(5, 9));
+
+    // Cloud & local unified state
+    let userCloudData = {
+      xp: 0,
+      level: 1,
+      streak: 1,
+      lastActiveDate: new Date().toISOString().split('T')[0],
+      masteredCount: 0,
+      battleWins: 0,
+      battlePlayed: 0,
+      badges: []
+    };
+
+    try {
+      const savedStats = localStorage.getItem('eagle_user_stats');
+      if (savedStats) userCloudData = { ...userCloudData, ...JSON.parse(savedStats) };
+    } catch(e){}
+
+    window.userCloudData = userCloudData;
+
+    function saveUserCloudData() {
+      try { localStorage.setItem('eagle_user_stats', JSON.stringify(userCloudData)); } catch(e){}
+      updateUIProfile();
+    }
+
+    window.cloudService = {
+      isReady: true,
+      myUserId,
+      getNickname: () => myNickname,
+      addXP: (pts) => {
+        userCloudData.xp = (userCloudData.xp || 0) + pts;
+        const newLvl = Math.floor(userCloudData.xp / 150) + 1;
+        if (newLvl > userCloudData.level) {
+          userCloudData.level = newLvl;
+          showLevelUpEffect(newLvl);
+        }
+        checkBadgeUnlocks();
+        saveUserCloudData();
+      },
+      recordStreak: () => {
+        const today = new Date().toISOString().split('T')[0];
+        if (userCloudData.lastActiveDate !== today) {
+          userCloudData.streak = (userCloudData.streak || 0) + 1;
+          userCloudData.lastActiveDate = today;
+          saveUserCloudData();
+        }
+      },
+      syncMasteredCount: (count) => {
+        userCloudData.masteredCount = count;
+        checkBadgeUnlocks();
+        saveUserCloudData();
+      },
+      recordBattleResult: (won) => {
+        userCloudData.battlePlayed = (userCloudData.battlePlayed || 0) + 1;
+        if (won) {
+          userCloudData.battleWins = (userCloudData.battleWins || 0) + 1;
+          window.cloudService.addXP(50);
+        } else {
+          window.cloudService.addXP(20);
+        }
+        checkBadgeUnlocks();
+        saveUserCloudData();
+      }
+    };
+
+    function checkBadgeUnlocks() {
+      const badges = userCloudData.badges || [];
+      const addBadge = (bId) => {
+        if (!badges.includes(bId)) {
+          badges.push(bId);
+          if (typeof confetti === 'function') confetti({ particleCount: 40, spread: 60, origin: { y: 0.6 } });
+        }
+      };
+      if (userCloudData.streak >= 1) addBadge('streak_1');
+      if (userCloudData.streak >= 3) addBadge('streak_3');
+      if (userCloudData.streak >= 7) addBadge('streak_7');
+      if (userCloudData.xp >= 100) addBadge('xp_100');
+      if (userCloudData.xp >= 500) addBadge('xp_500');
+      if ((userCloudData.masteredCount || 0) >= 10) addBadge('master_10');
+      if ((userCloudData.masteredCount || 0) >= 30) addBadge('master_30');
+      if ((userCloudData.battleWins || 0) >= 1) addBadge('battle_win');
+
+      userCloudData.badges = badges;
+      if (typeof window.renderBadgesUI === 'function') window.renderBadgesUI();
+    }
+
+    function updateUIProfile() {
+      const xp = userCloudData.xp || 0;
+      const level = userCloudData.level || 1;
+      const streak = userCloudData.streak || 1;
+
+      const headerLvl = document.getElementById('header-level');
+      const headerXp = document.getElementById('header-xp');
+      const headerStreak = document.getElementById('header-streak-count');
+      const drawerLvl = document.getElementById('drawer-user-level');
+      const drawerXp = document.getElementById('drawer-user-xp');
+      const drawerStreak = document.getElementById('drawer-user-streak');
+      const drawerName = document.getElementById('drawer-user-name');
+      const drawerAvatar = document.getElementById('drawer-user-avatar');
+      const progress = document.getElementById('drawer-level-progress');
+      const uidEl = document.getElementById('drawer-uid-full');
+
+      if (uidEl) uidEl.innerText = myUserId;
+      if (headerLvl) headerLvl.innerText = level;
+      if (headerXp) headerXp.innerText = xp;
+      if (headerStreak) headerStreak.innerText = streak;
+      if (drawerLvl) drawerLvl.innerText = level;
+      if (drawerXp) drawerXp.innerText = xp;
+      if (drawerStreak) drawerStreak.innerText = streak;
+      if (drawerName) drawerName.innerText = myNickname;
+      if (drawerAvatar) drawerAvatar.innerText = myNickname.charAt(0).toUpperCase();
+
+      if (progress) {
+        const xpInCurrentLvl = xp % 150;
+        progress.style.width = `${(xpInCurrentLvl / 150) * 100}%`;
+      }
+      if (typeof window.renderBadgesUI === 'function') window.renderBadgesUI();
+    }
+
+    function showLevelUpEffect(lvl) {
+      if (typeof confetti === 'function') confetti({ particleCount: 50, spread: 80, origin: { y: 0.5 } });
+      const feedback = document.getElementById('quiz-feedback');
+      if (feedback) {
+        feedback.className = "h-10 w-full flex items-center justify-center text-sm font-black rounded-xl bg-indigo-600 text-white opacity-100 transition-opacity";
+        feedback.innerHTML = `🎉 레벨 업! LEVEL ${lvl} 달성!`;
+        setTimeout(() => feedback.classList.remove('opacity-100'), 2500);
+      }
+    }
+
+    window.saveNewNicknameDirect = (newName) => {
+      if (!newName) return;
+      myNickname = newName;
+      try { localStorage.setItem('eagle_user_nick', newName); } catch(e){}
+      updateUIProfile();
+    };
+
+    // ================= GLOBAL WEBSOCKET REALTIME MULTIPLAYER (MQTT WSS) =================
+    // Connects any device across the internet (Phone, PC, Laptop) instantly
+    let mqttClient = null;
+    let currentBattleTopic = null;
+    let currentBattleRoomId = null;
+    let isHost = false;
+    let battleState = null;
+    window.battleState = null;
+
+    // Fast fallback brokers
+    const MQTT_BROKERS = [
+      'wss://broker.emqx.io:8084/mqtt',
+      'wss://broker.hivemq.com:8884/mqtt',
+      'wss://test.mosquitto.org:8081'
+    ];
+
+    function connectGlobalMqtt() {
+      if (mqttClient && mqttClient.connected) return;
+
+      const brokerUrl = MQTT_BROKERS[0];
+      const clientId = 'eagle_' + myUserId + '_' + Math.random().toString(16).substring(2, 6);
+
+      try {
+        mqttClient = mqtt.connect(brokerUrl, {
+          clientId: clientId,
+          clean: true,
+          connectTimeout: 4000,
+          reconnectPeriod: 2500
+        });
+
+        mqttClient.on('connect', () => {
+          const status = document.getElementById('net-status-indicator');
+          if (status) {
+            status.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>실시간 글로벌 네트워크 연결됨 (인터넷 대전 가능)</span>`;
+          }
+          if (currentBattleTopic) {
+            mqttClient.subscribe(currentBattleTopic, { qos: 1 });
+          }
+        });
+
+        mqttClient.on('message', (topic, payload) => {
+          try {
+            const data = JSON.parse(payload.toString());
+            handleNetworkMessage(data);
+          } catch(e) {
+            console.error("MQTT message parse error", e);
+          }
+        });
+
+        mqttClient.on('error', (err) => {
+          console.warn("MQTT broker error, will auto retry:", err);
+        });
+      } catch (err) {
+        console.warn("Global MQTT init error, using local fallback:", err);
+      }
+    }
+
+    // Connect immediately on page load
+    connectGlobalMqtt();
+
+    // Broadcast messages to other devices and local tabs
+    function broadcastToBattleRoom(msgObj) {
+      const payloadStr = JSON.stringify(msgObj);
+
+      // 1. Send via Global MQTT (Internet across phones and computers)
+      if (mqttClient && mqttClient.connected && currentBattleTopic) {
+        mqttClient.publish(currentBattleTopic, payloadStr, { qos: 1 });
+      }
+
+      // 2. Also send via LocalStorage & Event for instant multi-tabs on same machine
+      if (currentBattleRoomId) {
+        try {
+          localStorage.setItem('eagle_room_event_' + currentBattleRoomId, JSON.stringify({ ...msgObj, _time: Date.now() }));
+        } catch(e){}
+      }
+    }
+
+    // Handle incoming messages from other devices/players
+    function handleNetworkMessage(msg) {
+      if (!msg || msg.code !== currentBattleRoomId) return;
+
+      if (msg.type === 'SYNC_STATE') {
+        battleState = msg.state;
+        window.battleState = msg.state;
+        handleBattleRoomStateChange(battleState, isHost);
+        return;
+      }
+
+      // Host receives join request
+      if (msg.type === 'PLAYER_JOIN' && isHost) {
+        if (!battleState) return;
+        const players = battleState.players || {};
+        if (Object.keys(players).length >= (battleState.maxPlayers || 10)) return;
+
+        players[msg.player.id] = {
+          name: msg.player.name,
+          score: 0,
+          progress: 0,
+          isHost: false,
+          finished: false
+        };
+        battleState.players = players;
+        battleState.playerCount = Object.keys(players).length;
+
+        broadcastToBattleRoom({ type: 'SYNC_STATE', code: currentBattleRoomId, state: battleState });
+        handleBattleRoomStateChange(battleState, true);
+        return;
+      }
+
+      // Guest sends progress update to host
+      if (msg.type === 'PLAYER_PROGRESS' && isHost) {
+        if (!battleState || !battleState.players) return;
+        const players = battleState.players;
+
+        if (msg.swapTargetId && players[msg.swapTargetId] && players[msg.playerId]) {
+          const myOld = players[msg.playerId].score || 0;
+          const targetOld = players[msg.swapTargetId].score || 0;
+          players[msg.playerId].score = targetOld;
+          players[msg.swapTargetId].score = myOld;
+          players[msg.playerId].progress = msg.round;
+          players[msg.playerId].finished = (msg.round >= battleState.totalQuestions);
+        } else if (players[msg.playerId]) {
+          players[msg.playerId].score = (players[msg.playerId].score || 0) + msg.delta;
+          players[msg.playerId].progress = msg.round;
+          players[msg.playerId].finished = (msg.round >= battleState.totalQuestions);
+        }
+
+        broadcastToBattleRoom({ type: 'SYNC_STATE', code: currentBattleRoomId, state: battleState });
+        handleBattleRoomStateChange(battleState, true);
+        return;
+      }
+
+      // Player leaves
+      if (msg.type === 'PLAYER_LEAVE' && isHost) {
+        if (!battleState || !battleState.players) return;
+        delete battleState.players[msg.playerId];
+        battleState.playerCount = Object.keys(battleState.players).length;
+        broadcastToBattleRoom({ type: 'SYNC_STATE', code: currentBattleRoomId, state: battleState });
+        handleBattleRoomStateChange(battleState, true);
+      }
+    }
+
+    // Local storage listener for same-device multi-tab testing
+    window.addEventListener('storage', (e) => {
+      if (e.key && e.key.startsWith('eagle_room_event_') && e.newValue) {
+        try {
+          const data = JSON.parse(e.newValue);
+          handleNetworkMessage(data);
+        } catch(err){}
+      }
+    });
+
+    window.realtimeBattle = {
+      getBattleState: () => window.battleState || battleState,
+      setBattleState: (st) => { battleState = st; window.battleState = st; },
+      isHost: () => isHost,
+
+      createRoom: async (customQuestions = null, enablePuppyReward = true) => {
+        connectGlobalMqtt();
+
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        currentBattleRoomId = code;
+        currentBattleTopic = 'eagle/battle/room/' + code;
+        isHost = true;
+
+        if (mqttClient && mqttClient.connected) {
+          mqttClient.subscribe(currentBattleTopic, { qos: 1 });
+        }
+
+        let questions = [];
+        if (customQuestions && customQuestions.length >= 1) {
+          questions = customQuestions.map(item => ({
+            phrase: item.phrase,
+            meaning: item.meaning,
+            target: item.target || item.phrase.split(' ')[0]
+          }));
+        } else {
+          const rawCount = document.getElementById('battle-room-question-input')?.value;
+          let reqCount = parseInt(rawCount, 10);
+          if (isNaN(reqCount) || reqCount <= 0) reqCount = window.VOCAB_DATA.length;
+
+          const shuffled = [...window.VOCAB_DATA].sort(() => 0.5 - Math.random());
+          const finalCount = Math.min(reqCount, shuffled.length);
+
+          questions = shuffled.slice(0, finalCount).map(item => ({
+            phrase: item.phrase,
+            meaning: item.meaning,
+            target: item.target
+          }));
+        }
+
+        const initialPlayers = {};
+        initialPlayers[myUserId] = {
+          name: myNickname,
+          score: 0,
+          progress: 0,
+          isHost: true,
+          finished: false
+        };
+
+        battleState = {
+          status: 'waiting',
+          code: code,
+          hostId: myUserId,
+          hostName: myNickname,
+          players: initialPlayers,
+          playerCount: 1,
+          maxPlayers: 10,
+          questions: questions,
+          totalQuestions: questions.length,
+          enablePuppyReward: enablePuppyReward,
+          createdAt: Date.now()
+        };
+        window.battleState = battleState;
+
+        // Broadcast new room state
+        broadcastToBattleRoom({ type: 'SYNC_STATE', code: code, state: battleState });
+        handleBattleRoomStateChange(battleState, true);
+
+        return { code, totalQuestions: questions.length };
+      },
+      joinRoom: async (code) => {
+        if (!code) return { success: false, msg: "방 코드를 입력해주세요." };
+        connectGlobalMqtt();
+
+        currentBattleRoomId = code;
+        currentBattleTopic = 'eagle/battle/room/' + code;
+        isHost = false;
+
+        if (mqttClient && mqttClient.connected) {
+          mqttClient.subscribe(currentBattleTopic, { qos: 1 });
+        }
+
+        // Send Join Request via internet & local
+        broadcastToBattleRoom({
+          type: 'PLAYER_JOIN',
+          code: code,
+          player: { id: myUserId, name: myNickname }
+        });
+
+        // Set waiting preview while state resolves from host
+        document.getElementById('battle-lobby-controls')?.classList.add('hidden');
+        document.getElementById('battle-active-arena')?.classList.add('hidden');
+        document.getElementById('battle-result-box')?.classList.add('hidden');
+        document.getElementById('battle-waiting-box')?.classList.remove('hidden');
+
+        const dispCode = document.getElementById('battle-display-code');
+        if (dispCode) dispCode.innerText = code;
+
+        const startBtn = document.getElementById('battle-host-start-btn');
+        const guestMsg = document.getElementById('battle-guest-waiting-msg');
+        if (startBtn) startBtn.classList.add('hidden');
+        if (guestMsg) guestMsg.classList.remove('hidden');
+
+        return { success: true };
+      },
+      startGame: async () => {
+        if (!currentBattleRoomId || !isHost || !battleState) return;
+
+        battleState.status = 'playing';
+        battleState.startedAt = Date.now();
+        window.battleState = battleState;
+
+        // Command all devices across the web to start immediately
+        broadcastToBattleRoom({ type: 'SYNC_STATE', code: currentBattleRoomId, state: battleState });
+        handleBattleRoomStateChange(battleState, true);
+      },
+      submitProgress: async (round, scoreDelta, swapWithTargetId = null) => {
+        if (!currentBattleRoomId) return;
+
+        if (isHost) {
+          if (!battleState || !battleState.players) return;
+          const myData = battleState.players[myUserId] || { score: 0, progress: 0 };
+          const totalQ = battleState.totalQuestions || 5;
+
+          if (swapWithTargetId && battleState.players[swapWithTargetId]) {
+            const myOld = myData.score || 0;
+            const targetOld = battleState.players[swapWithTargetId].score || 0;
+            battleState.players[myUserId].score = targetOld;
+            battleState.players[swapWithTargetId].score = myOld;
+          } else {
+            battleState.players[myUserId].score = (myData.score || 0) + scoreDelta;
+          }
+          battleState.players[myUserId].progress = round;
+          battleState.players[myUserId].finished = (round >= totalQ);
+
+          broadcastToBattleRoom({ type: 'SYNC_STATE', code: currentBattleRoomId, state: battleState });
+          handleBattleRoomStateChange(battleState, true);
+        } else {
+          // Send progress message to host across network
+          broadcastToBattleRoom({
+            type: 'PLAYER_PROGRESS',
+            code: currentBattleRoomId,
+            playerId: myUserId,
+            round: round,
+            delta: scoreDelta,
+            swapTargetId: swapWithTargetId
+          });
+        }
+      },
+      cancelRoom: async () => {
+        if (currentBattleRoomId) {
+          broadcastToBattleRoom({ type: 'PLAYER_LEAVE', code: currentBattleRoomId, playerId: myUserId });
+          if (mqttClient && currentBattleTopic) {
+            try { mqttClient.unsubscribe(currentBattleTopic); } catch(e){}
+          }
+        }
+        currentBattleRoomId = null;
+        currentBattleTopic = null;
+        battleState = null;
+        window.battleState = null;
+      }
+    };
+  </script>
+
+  <!-- APP CORE LOGIC & GAMES -->
+  <script>
+    // ================= VOCABULARY DATA: Eagle C2 debate Unit 2 Lesson 3 =================
+    const DEFAULT_VOCAB_DATA = [
+      { id: 1, phrase: "covet money", target: "covet", meaning: "돈을 탐내다" },
+      { id: 2, phrase: "extortion of money", target: "extortion", meaning: "돈 갈취" },
+      { id: 3, phrase: "malicious gossip", target: "malicious", meaning: "악의적 험담" },
+      { id: 4, phrase: "revelation of corruption", target: "revelation", meaning: "비리 폭로" },
+      { id: 5, phrase: "mull a question", target: "mull", meaning: "문제를 숙고하다" },
+      { id: 6, phrase: "lethal blow", target: "lethal", meaning: "치명타" },
+      { id: 7, phrase: "food procurement", target: "procurement", meaning: "식량 조달" },
+      { id: 8, phrase: "breach of contract", target: "breach", meaning: "계약 위반" },
+      { id: 9, phrase: "precocious teen", target: "precocious", meaning: "조숙한 십대" },
+      { id: 10, phrase: "located in the vicinity", target: "vicinity", meaning: "인근에 위치한" },
+      { id: 11, phrase: "exemption from military service", target: "exemption", meaning: "병역 면제" },
+      { id: 12, phrase: "peril of death", target: "peril", meaning: "죽음의 위험" },
+      { id: 13, phrase: "aggravate the situation", target: "aggravate", meaning: "상황을 악화시키다" },
+      { id: 14, phrase: "all-out scrutiny", target: "scrutiny", meaning: "전면 조사" },
+      { id: 15, phrase: "lucrative business", target: "lucrative", meaning: "수익성이 좋은 사업" },
+      { id: 16, phrase: "privilege of impunity", target: "impunity", meaning: "면책 특권" },
+      { id: 17, phrase: "curtail expenses", target: "curtail", meaning: "비용을 줄이다" },
+      { id: 18, phrase: "provocative remark", target: "provocative", meaning: "도발적인 발언" },
+      { id: 19, phrase: "prosecute the war", target: "prosecute", meaning: "전쟁을 추진하다" },
+      { id: 20, phrase: "satirical cartoon", target: "satirical", meaning: "풍자 만화" },
+      { id: 21, phrase: "probe the suspect", target: "probe", meaning: "용의자를 조사하다" },
+      { id: 22, phrase: "robust economic growth", target: "robust", meaning: "탄탄한 경제 성장" },
+      { id: 23, phrase: "advent of the smartphone", target: "advent", meaning: "스마트폰의 등장" },
+      { id: 24, phrase: "sovereignty of a country", target: "sovereignty", meaning: "나라의 주권" },
+      { id: 25, phrase: "surveillance camera", target: "surveillance", meaning: "감시 카메라" },
+      { id: 26, phrase: "unfettered competition", target: "unfettered", meaning: "자유 경쟁" },
+      { id: 27, phrase: "copyright infringement", target: "infringement", meaning: "저작권 침해" },
+      { id: 28, phrase: "voracious reader", target: "voracious", meaning: "열렬한 독서가" },
+      { id: 29, phrase: "prospective spouse", target: "prospective", meaning: "장래 배우자" },
+      { id: 30, phrase: "reiterate an argument", target: "reiterate", meaning: "주장을 반복하다" },
+      { id: 31, phrase: "raucous laughter", target: "raucous", meaning: "요란한 웃음" },
+      { id: 32, phrase: "grapple with math problems", target: "grapple with", meaning: "수학 문제와 씨름하다" },
+      { id: 33, phrase: "commit an indiscretion", target: "indiscretion", meaning: "무분별한 행동을 하다" },
+      { id: 34, phrase: "archaic expression", target: "archaic", meaning: "낡은 표현" },
+      { id: 35, phrase: "thwart a terrorist plan", target: "thwart", meaning: "테러 계획을 저지하다" },
+      { id: 36, phrase: "invoke a maxim", target: "invoke", meaning: "격언을 언급하다" },
+      { id: 37, phrase: "contingent of residents", target: "contingent", meaning: "주민 대표단" },
+      { id: 38, phrase: "prune a tree", target: "prune", meaning: "나무를 가지치기하다" },
+      { id: 39, phrase: "deter crime", target: "deter", meaning: "범죄를 막다" },
+      { id: 40, phrase: "speculate on the future", target: "speculate", meaning: "미래를 추측하다" }
+    ];
+
+    window.VOCAB_DATA = [...DEFAULT_VOCAB_DATA];
+
+    const BADGE_DEFINITIONS = [
+      { id: 'streak_1', title: '학습의 시작', desc: '1일 연속 학습 달성', icon: 'fa-fire', color: 'text-amber-500' },
+      { id: 'streak_3', title: '꾸준한 습관', desc: '3일 연속 학습 달성', icon: 'fa-calendar-check', color: 'text-orange-500' },
+      { id: 'streak_7', title: '불타는 열정', desc: '7일 연속 학습 달성', icon: 'fa-bolt', color: 'text-rose-500' },
+      { id: 'xp_100', title: '루키 러너', desc: '총 100 XP 획득', icon: 'fa-star', color: 'text-indigo-500' },
+      { id: 'xp_500', title: '보카 마스터', desc: '총 500 XP 획득', icon: 'fa-crown', color: 'text-yellow-500' },
+      { id: 'master_10', title: '단어 수집가', desc: '단어 10개 암기 완료', icon: 'fa-book-bookmark', color: 'text-emerald-500' },
+      { id: 'master_30', title: '어휘 대가', desc: '단어 30개 암기 완료', icon: 'fa-brain', color: 'text-purple-500' },
+      { id: 'battle_win', title: '아레나 챔피언', desc: '멀티 대전 1회 우승', icon: 'fa-trophy', color: 'text-teal-500' }
+    ];
+    window.BADGE_DEFINITIONS = BADGE_DEFINITIONS;
+
+    const TAB_NAMES = {
+      battle: '실시간 멀티 단어 대전',
+      leaderboard: '주간 랭킹 보드',
+      badges: '업적 & 배지 도감',
+      quiz: '4지선다 스피드 퀴즈',
+      rain: '워드 레인 디펜스',
+      tf: 'OX 스피드 판정',
+      autoplay: '연속 자동 듣기',
+      aicoach: 'AI 발음 코치',
+      cardmatch: '카드 짝 맞추기',
+      blank: '빈칸 단어 입력',
+      scramble: '단어 철자 조립 (Scramble)',
+      listening: '리스닝 섀도잉 퀴즈',
+      flashcard: '3D 플래시카드',
+      vlist: '전체 단어장',
+      settings: '단어 설정 & 사진 업로드'
+    };
+
+    let currentTab = 'battle';
+    let audioEnabled = true;
+    let userStats = {
+      mastered: new Set(),
+      starred: new Set()
+    };
+    window.userStats = userStats;
+
+    function openDrawer() {
+      const drawer = document.getElementById('side-drawer');
+      const backdrop = document.getElementById('drawer-backdrop');
+      if (drawer) drawer.classList.remove('-translate-x-full');
+      if (backdrop) backdrop.classList.remove('opacity-0', 'pointer-events-none');
+    }
+
+    function closeDrawer() {
+      const drawer = document.getElementById('side-drawer');
+      const backdrop = document.getElementById('drawer-backdrop');
+      if (drawer) drawer.classList.add('-translate-x-full');
+      if (backdrop) backdrop.classList.add('opacity-0', 'pointer-events-none');
+    }
+
+    // 6 Mystery Dog Rewards (as requested)
+    const PUPPY_REWARDS = [
+      { text: "🌟 1. +300 포인트 추가 (대박!)", delta: 300, isSwap: false, color: "bg-emerald-100 text-emerald-800 border-emerald-300" },
+      { text: "⚠️ 2. -100 포인트 감점 (함정!)", delta: -100, isSwap: false, color: "bg-rose-100 text-rose-800 border-rose-300" },
+      { text: "✨ 3. +100 포인트 추가 (보너스)", delta: 100, isSwap: false, color: "bg-indigo-100 text-indigo-800 border-indigo-300" },
+      { text: "💥 4. -200 포인트 감점 (패널티)", delta: -200, isSwap: false, color: "bg-rose-100 text-rose-800 border-rose-300" },
+      { text: "🔄 5. 상대 점수와 바꾸기 (대역전 찬스!)", delta: 0, isSwap: true, color: "bg-purple-100 text-purple-800 border-purple-300" },
+      { text: "💣 6. -600 포인트 감점 (폭탄 함정!)", delta: -600, isSwap: false, color: "bg-red-200 text-red-900 border-red-400" }
+    ];
+
+    function copyBattleRoomCode() {
+      const code = document.getElementById('battle-display-code')?.innerText;
+      if (!code || code === '------') return;
+      const temp = document.createElement('textarea');
+      temp.value = code;
+      document.body.appendChild(temp);
+      temp.select();
+      try {
+        document.execCommand('copy');
+        showCustomNotice("코드 복사 완료", `방 코드 [${code}]가 클립보드에 복사되었습니다! 친구들에게 공유하세요.`);
+      } catch(e){}
+      document.body.removeChild(temp);
+    }
+
+    async function quickJoinBattle() {
+      const testCode = prompt("참가할 상대방의 방 코드(6자리)를 입력하세요:");
+      if (!testCode) return;
+      const input = document.getElementById('battle-room-input');
+      if (input) input.value = testCode;
+      joinBattleByCode();
+    }
+
+    async function joinBattleByCode() {
+      const code = document.getElementById('battle-room-input')?.value.trim();
+      if (!code) return;
+
+      const res = await window.realtimeBattle.joinRoom(code);
+      if (!res.success) {
+        showCustomNotice("입장 불가", res.msg || "해당 방에 입장할 수 없습니다.");
+      }
+    }
+
+    function hostStartBattleGame() {
+      window.realtimeBattle.startGame();
+    }
+
+    function cancelBattleRoom() {
+      window.realtimeBattle.cancelRoom();
+      document.getElementById('battle-waiting-box')?.classList.add('hidden');
+      document.getElementById('battle-active-arena')?.classList.add('hidden');
+      document.getElementById('battle-result-box')?.classList.add('hidden');
+      document.getElementById('battle-lobby-controls')?.classList.remove('hidden');
+    }
+
+    function broadcastRoomUpdate(room) {
+      if (!room || !room.code) return;
+      try {
+        localStorage.setItem('eagle_battle_room_' + room.code, JSON.stringify(room));
+        window.dispatchEvent(new CustomEvent('eagle_local_battle_update', { detail: room }));
+      } catch(e) {}
+    }
+
+    // Simulated AI Player for instant multiplayer testing
+    window.addSimulatedPlayer = function() {
+      const state = window.realtimeBattle.getBattleState();
+      if (!state) {
+        showCustomNotice("방 미생성", "먼저 대전방을 생성해주세요.");
+        return;
+      }
+      const names = ["어휘의신_민우", "스피드_지호", "수빈_Debate", "Master_Chloe", "도전자_태양", "지민_Vocab", "준혁_Speed", "은서_Debater", "현우_Star"];
+      const botId = 'bot_' + Math.random().toString(36).substring(2, 7);
+      const randomName = names[Math.floor(Math.random() * names.length)] + " 🤖";
+
+      const currentPlayers = state.players || {};
+      if (Object.keys(currentPlayers).length >= (state.maxPlayers || 10)) {
+        showCustomNotice("인원 초과", "더 이상 참가자를 추가할 수 없습니다 (최대 10명).");
+        return;
+      }
+
+      currentPlayers[botId] = {
+        id: botId,
+        name: randomName,
+        score: 0,
+        progress: 0,
+        isHost: false,
+        isBot: true,
+        finished: false
+      };
+      state.players = currentPlayers;
+      state.playerCount = Object.keys(currentPlayers).length;
+      window.realtimeBattle.setBattleState(state);
+
+      broadcastRoomUpdate(state);
+      handleBattleRoomStateChange(state, window.realtimeBattle.isHost());
+    };
+
+    let botSimulatorInterval = null;
+    function startBotSimulator() {
+      if (botSimulatorInterval) clearInterval(botSimulatorInterval);
+      botSimulatorInterval = setInterval(() => {
+        const state = window.realtimeBattle.getBattleState();
+        if (!state || state.status !== 'playing' || !window.realtimeBattle.isHost()) return;
+
+        const players = state.players || {};
+        const totalQ = state.totalQuestions || 5;
+        let changed = false;
+
+        Object.values(players).forEach(p => {
+          if (p.isBot && !p.finished && p.progress < totalQ) {
+            if (Math.random() > 0.35) {
+              p.progress += 1;
+              const isCorrect = Math.random() > 0.25;
+              if (isCorrect) p.score += (Math.random() > 0.5 ? 100 : 300);
+              if (p.progress >= totalQ) p.finished = true;
+              changed = true;
+            }
+          }
+        });
+
+        if (changed) {
+          window.realtimeBattle.setBattleState(state);
+          broadcastRoomUpdate(state);
+          handleBattleRoomStateChange(state, window.realtimeBattle.isHost());
+        }
+      }, 2500);
+    }
+
+    function handleBattleRoomStateChange(data, isHost) {
+      if (!data) return;
+
+      const playersObj = data.players || {};
+      const playerList = Object.entries(playersObj).map(([uid, p]) => ({ id: uid, ...p }));
+      const myId = window.cloudService.myUserId;
+      const totalQ = data.totalQuestions || data.questions?.length || 5;
+
+      // 1. Waiting in Lobby State
+      if (data.status === 'waiting') {
+        document.getElementById('battle-lobby-controls')?.classList.add('hidden');
+        document.getElementById('battle-active-arena')?.classList.add('hidden');
+        document.getElementById('battle-result-box')?.classList.add('hidden');
+        document.getElementById('battle-waiting-box')?.classList.remove('hidden');
+
+        const dispCode = document.getElementById('battle-display-code');
+        const waitCount = document.getElementById('battle-waiting-count');
+        const wordCount = document.getElementById('battle-custom-word-count');
+        if (dispCode) dispCode.innerText = data.code;
+        if (waitCount) waitCount.innerText = playerList.length;
+        if (wordCount) wordCount.innerText = totalQ;
+
+        const rewardBadgeText = document.getElementById('battle-reward-mode-text');
+        const rewardBadge = document.getElementById('battle-reward-mode-badge');
+        if (rewardBadgeText && rewardBadge) {
+          if (data.enablePuppyReward !== false) {
+            rewardBadgeText.innerText = '강아지 룰렛 보상: ON';
+            rewardBadge.className = 'mb-3 ml-1.5 inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-800 text-xs font-bold rounded-full border border-amber-200';
+          } else {
+            rewardBadgeText.innerText = '강아지 보상: OFF (일반 스피드전)';
+            rewardBadge.className = 'mb-3 ml-1.5 inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 text-slate-700 text-xs font-bold rounded-full border border-slate-300';
+          }
+        }
+
+        const waitingListEl = document.getElementById('battle-waiting-players-list');
+        const countSpan = document.getElementById('battle-current-joined-count');
+        if (countSpan) countSpan.innerText = playerList.length;
+
+        if (waitingListEl) {
+          waitingListEl.innerHTML = playerList.map(p => `
+            <div class="p-2.5 rounded-xl border ${p.id === myId ? 'bg-indigo-50 border-indigo-200 text-indigo-900 ring-1 ring-indigo-300' : 'bg-white border-slate-200 text-slate-800'} flex items-center gap-2 text-xs font-bold">
+              <div class="w-6 h-6 rounded-lg ${p.isHost ? 'bg-amber-100 text-amber-700' : p.isBot ? 'bg-violet-100 text-violet-700' : 'bg-slate-100 text-slate-600'} flex items-center justify-center text-[10px]">
+                ${p.isHost ? '<i class="fa-solid fa-crown text-[10px]"></i>' : p.isBot ? '<i class="fa-solid fa-robot text-[10px]"></i>' : '<i class="fa-solid fa-user text-[10px]"></i>'}
+              </div>
+              <span class="truncate flex-1">${p.name || '참가자'}${p.id === myId ? ' (나)' : ''}</span>
+              ${p.isHost ? '<span class="text-[9px] bg-amber-100 text-amber-800 px-1 py-0.2 rounded font-black">방장</span>' : ''}
+            </div>
+          `).join('');
+        }
+
+        const startBtn = document.getElementById('battle-host-start-btn');
+        const guestMsg = document.getElementById('battle-guest-waiting-msg');
+        if (isHost) {
+          startBtn?.classList.remove('hidden');
+          guestMsg?.classList.add('hidden');
+        } else {
+          startBtn?.classList.add('hidden');
+          guestMsg?.classList.remove('hidden');
+        }
+        return;
+      }
+
+      // 2. Playing State
+      if (data.status === 'playing') {
+        document.getElementById('battle-waiting-box')?.classList.add('hidden');
+        document.getElementById('battle-lobby-controls')?.classList.add('hidden');
+        document.getElementById('battle-active-arena')?.classList.remove('hidden');
+        document.getElementById('battle-result-box')?.classList.add('hidden');
+
+        const totEl = document.getElementById('battle-total-rounds');
+        const pCntEl = document.getElementById('battle-arena-player-count');
+        if (totEl) totEl.innerText = totalQ;
+        if (pCntEl) pCntEl.innerText = playerList.length;
+
+        const sortedPlayers = [...playerList].sort((a, b) => (b.score || 0) - (a.score || 0));
+        const myRankIndex = sortedPlayers.findIndex(p => p.id === myId);
+        const myData = playersObj[myId] || { score: 0, progress: 0 };
+
+        const myScoreEl = document.getElementById('battle-my-live-score');
+        const rankInd = document.getElementById('battle-my-rank-indicator');
+        if (myScoreEl) myScoreEl.innerText = myData.score || 0;
+        if (rankInd) rankInd.innerText = `내 순위: ${myRankIndex !== -1 ? (myRankIndex + 1) + '위' : '-'}`;
+
+        const multiBoardEl = document.getElementById('battle-multi-leaderboard');
+        if (multiBoardEl) {
+          multiBoardEl.innerHTML = sortedPlayers.map((p, idx) => {
+            const isMe = p.id === myId;
+            const progPct = Math.min(100, Math.round(((p.progress || 0) / totalQ) * 100));
+            return `
+              <div class="p-2 rounded-xl border flex items-center justify-between text-xs ${isMe ? 'bg-indigo-50 border-indigo-200 font-black' : 'bg-white border-slate-200 font-semibold'}">
+                <div class="flex items-center gap-2 flex-1 min-w-0 pr-2">
+                  <span class="w-4 text-center font-black ${idx === 0 ? 'text-amber-500' : 'text-slate-400'}">${idx + 1}</span>
+                  <span class="truncate text-slate-800">${p.name || '플레이어'}${isMe ? ' (나)' : ''}</span>
+                  <div class="hidden sm:block flex-1 max-w-[100px] bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                    <div class="bg-indigo-500 h-full" style="width: ${progPct}%"></div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-[10px] text-slate-400">${p.progress || 0}/${totalQ}</span>
+                  <span class="font-black ${isMe ? 'text-indigo-600' : 'text-slate-700'}">${p.score || 0}점</span>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+
+        if (battleActiveQuestions.length === 0 && data.questions) {
+          battleActiveQuestions = data.questions;
+          battleRound = 0;
+          battleMyScore = 0;
+          loadBattleQuestion();
+          if (isHost) startBotSimulator();
+        }
+
+        const allFinished = playerList.length > 0 && playerList.every(p => (p.progress || 0) >= totalQ);
+        if (allFinished) {
+          if (botSimulatorInterval) clearInterval(botSimulatorInterval);
+          showBattleMultiResult(sortedPlayers, myId);
+        }
+      }
+    }
+
+    function showPuppySelectionModal() {
+      const modal = document.getElementById('battle-puppy-modal');
+      const resultBox = document.getElementById('puppy-reward-result');
+      const puppyBtns = document.querySelectorAll('.puppy-select-btn');
+
+      if (modal) modal.classList.remove('hidden');
+      if (resultBox) resultBox.classList.add('hidden');
+      puppyBtns.forEach(b => {
+        b.disabled = false;
+        b.classList.remove('opacity-40', 'pointer-events-none', 'ring-2', 'ring-amber-500');
+      });
+    }
+
+    function pickPuppyReward(puppyIdx) {
+      const puppyBtns = document.querySelectorAll('.puppy-select-btn');
+      puppyBtns.forEach((b, i) => {
+        b.disabled = true;
+        if (i !== puppyIdx) {
+          b.classList.add('opacity-40', 'pointer-events-none');
+        } else {
+          b.classList.add('ring-2', 'ring-amber-500');
+        }
+      });
+
+      const reward = PUPPY_REWARDS[Math.floor(Math.random() * PUPPY_REWARDS.length)];
+      const resultBox = document.getElementById('puppy-reward-result');
+
+      if (resultBox) {
+        resultBox.innerText = reward.text;
+        resultBox.className = `mt-4 p-3.5 rounded-2xl border font-black text-xs sm:text-sm animate-bounce ${reward.color}`;
+        resultBox.classList.remove('hidden');
+      }
+
+      const bState = window.realtimeBattle.getBattleState();
+      const myId = window.cloudService.myUserId;
+      const players = bState?.players || {};
+      const otherPlayers = Object.entries(players).filter(([uid]) => uid !== myId);
+
+      if (reward.isSwap && otherPlayers.length > 0) {
+        otherPlayers.sort((a, b) => (b[1].score || 0) - (a[1].score || 0));
+        const targetPlayer = otherPlayers[0];
+        if (resultBox) {
+          resultBox.innerText = `🔄 [${targetPlayer[1].name || '상대'}]님과 점수 교환 발동! (${targetPlayer[1].score || 0}점으로 변경)`;
+        }
+        battleRound++;
+        window.realtimeBattle.submitProgress(battleRound, 0, targetPlayer[0]);
+      } else {
+        battleMyScore += reward.delta;
+        battleRound++;
+        window.realtimeBattle.submitProgress(battleRound, reward.delta, null);
+      }
+
+      if (reward.delta > 0 && typeof confetti === 'function') {
+        confetti({ particleCount: 35, spread: 60, origin: { y: 0.6 } });
+      }
+
+      const totalQ = battleActiveQuestions.length;
+      setTimeout(() => {
+        if (battleRound < totalQ) {
+          loadBattleQuestion();
+        } else {
+          document.getElementById('battle-puppy-modal')?.classList.add('hidden');
+          const grid = document.getElementById('battle-options-grid');
+          if (grid) {
+            grid.innerHTML = `
+              <div class="col-span-full text-center py-6 text-xs text-slate-500 font-bold">
+                <i class="fa-solid fa-spinner animate-spin mr-1 text-indigo-600"></i> 다른 모든 참가자의 문제 풀이 완료를 기다리고 있습니다...
+              </div>
+            `;
+          }
+        }
+      }, 1600);
+    }
+
+    function showBattleMultiResult(sortedPlayers, myId) {
+      document.getElementById('battle-active-arena')?.classList.add('hidden');
+      const resultBox = document.getElementById('battle-result-box');
+      if (resultBox) resultBox.classList.remove('hidden');
+
+      const myRank = sortedPlayers.findIndex(p => p.id === myId) + 1;
+      const isWinner = (myRank === 1);
+      const titleEl = document.getElementById('battle-result-title');
+      const descEl = document.getElementById('battle-result-desc');
+      const iconEl = document.getElementById('battle-result-icon');
+
+      if (isWinner) {
+        if (titleEl) titleEl.innerText = "🏆 1위 우승을 차지했습니다!";
+        if (descEl) descEl.innerText = `총 ${sortedPlayers.length}명 중 1위 달성! (+50 XP 획득)`;
+        if (iconEl) iconEl.className = "w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-3xl mb-3";
+        if (typeof confetti === 'function') confetti({ particleCount: 80, spread: 90, origin: { y: 0.6 } });
+        window.cloudService.recordBattleResult(true);
+      } else {
+        if (titleEl) titleEl.innerText = `🎖️ 최종 ${myRank}위로 완주했습니다!`;
+        if (descEl) descEl.innerText = `수고하셨습니다! (+20 XP 획득)`;
+        if (iconEl) iconEl.className = "w-16 h-16 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-3xl mb-3";
+        window.cloudService.addXP(20);
+      }
+
+      const standingsEl = document.getElementById('battle-final-standings');
+      if (standingsEl) {
+        standingsEl.innerHTML = sortedPlayers.map((p, idx) => `
+          <div class="p-2.5 rounded-xl border flex items-center justify-between ${p.id === myId ? 'bg-indigo-50 border-indigo-200 font-black' : 'bg-white border-slate-200'}">
+            <div class="flex items-center gap-2">
+              <span class="w-5 text-center font-black ${idx === 0 ? 'text-amber-500' : 'text-slate-400'}">${idx + 1}</span>
+              <span class="text-slate-800">${p.name || '참가자'}${p.id === myId ? ' (나)' : ''}</span>
+            </div>
+            <span class="font-black text-indigo-600">${p.score || 0}점</span>
+          </div>
+        `).join('');
+      }
+    }
+
+    function selectMode(mode) {
+      closeDrawer();
+      switchTab(mode);
+    }
+
+    function playTTS(text) {
+      if (!audioEnabled || !('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'en-US';
+      utterance.rate = 0.95;
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function toggleAudio() {
+      audioEnabled = !audioEnabled;
+      const icon = document.getElementById('tts-icon');
+      const btn = document.getElementById('tts-toggle-btn');
+      if (audioEnabled) {
+        if (icon) icon.className = "fa-solid fa-volume-high text-indigo-600";
+        if (btn) btn.querySelector('span').innerText = "음성";
+      } else {
+        if (icon) icon.className = "fa-solid fa-volume-xmark text-slate-400";
+        if (btn) btn.querySelector('span').innerText = "꺼짐";
+      }
+    }
+
+    function switchTab(tabName) {
+      if (currentTab === 'rain') stopRainLoop();
+      if (currentTab === 'tf') clearInterval(tfTimerInterval);
+      if (currentTab === 'quiz') clearInterval(quizTimer);
+      if (currentTab === 'autoplay') stopAutoplayLoop();
+      if (currentTab === 'aicoach') stopCoachRecognition();
+
+      currentTab = tabName;
+      const tabs = ['battle', 'leaderboard', 'badges', 'quiz', 'rain', 'tf', 'autoplay', 'aicoach', 'cardmatch', 'blank', 'scramble', 'listening', 'flashcard', 'vlist', 'settings'];
+      
+      const titleEl = document.getElementById('header-active-title');
+      if (titleEl) titleEl.innerText = TAB_NAMES[tabName] || tabName;
+
+      tabs.forEach(t => {
+        const view = document.getElementById(`view-${t}`);
+        const drawerBtn = document.getElementById(`drawer-btn-${t}`);
+
+        if (t === tabName) {
+          if (view) view.classList.remove('hidden');
+          if (drawerBtn) drawerBtn.classList.add('bg-indigo-50', 'text-indigo-600', 'font-bold');
+        } else {
+          if (view) view.classList.add('hidden');
+          if (drawerBtn) drawerBtn.classList.remove('bg-indigo-50', 'text-indigo-600', 'font-bold');
+        }
+      });
+
+      if (tabName === 'quiz') startSpeedQuiz();
+      if (tabName === 'rain') startRainGame();
+      if (tabName === 'tf') startTFGame();
+      if (tabName === 'autoplay') startAutoplayMode();
+      if (tabName === 'aicoach') startCoachMode();
+      if (tabName === 'cardmatch') startCardMatchGame();
+      if (tabName === 'blank') startBlankGame();
+      if (tabName === 'scramble') startScrambleGame();
+      if (tabName === 'listening') startListeningGame();
+      if (tabName === 'flashcard') renderFlashcard();
+      if (tabName === 'vlist') renderVocabList();
+      if (tabName === 'settings') initSettingsView();
+      if (tabName === 'badges') renderBadgesUI();
+    }
+
+    function updateMasteredCount() {
+      if (window.cloudService) {
+        window.cloudService.syncMasteredCount(userStats.mastered.size);
+      }
+    }
+
+    // ================= BADGES UI =================
+    function renderBadgesUI() {
+      const container = document.getElementById('badges-grid');
+      if (!container) return;
+
+      const myBadges = window.userCloudData?.badges || [];
+      const countEl = document.getElementById('badge-unlocked-count');
+      if (countEl) countEl.innerText = myBadges.length;
+
+      container.innerHTML = BADGE_DEFINITIONS.map(b => {
+        const isUnlocked = myBadges.includes(b.id);
+        return `
+          <div class="p-4 rounded-2xl clean-card text-center transition flex flex-col items-center justify-center ${isUnlocked ? 'border-indigo-200 bg-white' : 'opacity-40 grayscale bg-slate-50'}">
+            <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-xl mb-2 ${isUnlocked ? 'bg-indigo-50 ' + b.color : 'bg-slate-200 text-slate-400'}">
+              <i class="fa-solid ${b.icon}"></i>
+            </div>
+            <div class="text-xs font-bold text-slate-800">${b.title}</div>
+            <div class="text-[10px] text-slate-400 mt-0.5 leading-tight">${b.desc}</div>
+            <span class="mt-2 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${isUnlocked ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-500'}">
+              ${isUnlocked ? '획득 완료' : '미달성'}
+            </span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ================= LEADERBOARD UI =================
+    function renderLeaderboardUI(users) {
+      const listContainer = document.getElementById('leaderboard-list');
+      const podiumContainer = document.getElementById('podium-container');
+      if (!listContainer || !podiumContainer) return;
+
+      if (!users || users.length === 0) {
+        listContainer.innerHTML = `<div class="text-center py-8 text-xs text-slate-400">등록된 랭커가 없습니다. 지금 첫 번째가 되어보세요!</div>`;
+        podiumContainer.innerHTML = '';
+        return;
+      }
+
+      const top3 = users.slice(0, 3);
+      podiumContainer.innerHTML = `
+        <!-- 2nd -->
+        <div class="flex flex-col items-center">
+          <div class="text-xs font-black text-slate-400 mb-1">2위</div>
+          <div class="w-12 h-12 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-black text-sm mb-2 shadow-inner">
+            ${top3[1]?.nickname?.charAt(0) || '-'}
+          </div>
+          <div class="text-xs font-bold text-slate-800 truncate w-20">${top3[1]?.nickname || '공석'}</div>
+          <div class="text-[10px] text-indigo-600 font-extrabold">${top3[1]?.xp || 0} XP</div>
+        </div>
+        <!-- 1st -->
+        <div class="flex flex-col items-center">
+          <i class="fa-solid fa-crown text-amber-400 text-base mb-1 animate-bounce"></i>
+          <div class="w-16 h-16 rounded-full bg-amber-100 border-2 border-amber-300 text-amber-700 flex items-center justify-center font-black text-base mb-2 shadow-md">
+            ${top3[0]?.nickname?.charAt(0) || '-'}
+          </div>
+          <div class="text-xs font-black text-slate-900 truncate w-24">${top3[0]?.nickname || '공석'}</div>
+          <div class="text-[11px] text-amber-600 font-black">${top3[0]?.xp || 0} XP</div>
+        </div>
+        <!-- 3rd -->
+        <div class="flex flex-col items-center">
+          <div class="text-xs font-black text-slate-400 mb-1">3위</div>
+          <div class="w-12 h-12 rounded-full bg-amber-50 text-amber-800 flex items-center justify-center font-black text-sm mb-2 shadow-inner">
+            ${top3[2]?.nickname?.charAt(0) || '-'}
+          </div>
+          <div class="text-xs font-bold text-slate-800 truncate w-20">${top3[2]?.nickname || '공석'}</div>
+          <div class="text-[10px] text-indigo-600 font-extrabold">${top3[2]?.xp || 0} XP</div>
+        </div>
+      `;
+
+      listContainer.innerHTML = users.map((u, idx) => {
+        const isMe = u.id === window.cloudService.myUserId;
+        return `
+          <div class="p-3.5 rounded-2xl clean-card flex items-center justify-between text-xs transition ${isMe ? 'border-indigo-400 bg-indigo-50/40 ring-1 ring-indigo-300' : ''}">
+            <div class="flex items-center gap-3">
+              <span class="w-6 font-black text-center ${idx < 3 ? 'text-amber-500 font-extrabold' : 'text-slate-400'}">${idx + 1}</span>
+              <div class="w-8 h-8 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs">
+                ${u.nickname ? u.nickname.charAt(0) : 'U'}
+              </div>
+              <div>
+                <div class="font-bold text-slate-800 flex items-center gap-1.5">
+                  ${u.nickname || '학습자'}
+                  ${isMe ? '<span class="text-[9px] bg-indigo-600 text-white px-1.5 py-0.2 rounded font-black">ME</span>' : ''}
+                </div>
+                <div class="text-[10px] text-slate-400">Lv.${u.level || 1} • 스트릭 ${u.streak || 0}일</div>
+              </div>
+            </div>
+            <div class="font-black text-indigo-600 text-sm">
+              ${u.xp || 0} <span class="text-[10px] font-normal text-slate-400">XP</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ================= REALTIME BATTLE FRONTEND =================
+    let battleRound = 0;
+    let battleMyScore = 0;
+    let battleActiveQuestions = [];
+    let isBattleAnsweringLocked = false;
+    let battleCustomWordTab = 'default';
+    let battleExtractedFromPhoto = null;
+    let battleUploadedImageBase64 = null;
+    let selectedPuppyRewardMode = true; // true = Puppy Reward ON, false = Puppy Reward OFF
+
+    function selectBattlePuppyRewardMode(enable) {
+      selectedPuppyRewardMode = enable;
+      const onBtn = document.getElementById('battle-reward-mode-on-btn');
+      const offBtn = document.getElementById('battle-reward-mode-off-btn');
+      if (enable) {
+        if (onBtn) onBtn.className = "p-3 rounded-2xl border-2 border-amber-400 bg-amber-50/80 text-left transition flex items-center gap-2.5 shadow-sm";
+        if (offBtn) offBtn.className = "p-3 rounded-2xl border-2 border-slate-200 bg-slate-50 text-left transition flex items-center gap-2.5 opacity-60 hover:opacity-100";
+      } else {
+        if (offBtn) offBtn.className = "p-3 rounded-2xl border-2 border-indigo-500 bg-indigo-50/80 text-left transition flex items-center gap-2.5 shadow-sm";
+        if (onBtn) onBtn.className = "p-3 rounded-2xl border-2 border-slate-200 bg-slate-50 text-left transition flex items-center gap-2.5 opacity-60 hover:opacity-100";
+      }
+    }
+
+    function setBattleQuestionCount(count) {
+      const input = document.getElementById('battle-room-question-input');
+      if (input) input.value = count;
+    }
+
+    function setBattleQuestionAll() {
+      const input = document.getElementById('battle-room-question-input');
+      if (!input) return;
+
+      if (battleCustomWordTab === 'typing') {
+        const text = document.getElementById('battle-custom-typing-text')?.value.trim() || '';
+        const lines = text.split('\n').filter(l => l.trim().length > 0);
+        input.value = Math.max(1, lines.length || 10);
+      } else if (battleCustomWordTab === 'photo' && battleExtractedFromPhoto?.length) {
+        input.value = battleExtractedFromPhoto.length;
+      } else {
+        input.value = window.VOCAB_DATA?.length || 40;
+      }
+    }
+
+    function openCreateBattleModal() {
+      const modal = document.getElementById('create-battle-modal');
+      if (modal) modal.classList.remove('hidden');
+      switchBattleWordTab('default');
+    }
+
+    function closeCreateBattleModal() {
+      const modal = document.getElementById('create-battle-modal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function switchBattleWordTab(tab) {
+      battleCustomWordTab = tab;
+      const tabs = ['default', 'typing', 'photo'];
+      tabs.forEach(t => {
+        const btn = document.getElementById(`modal-tab-${t}-btn`);
+        const content = document.getElementById(`battle-tab-${t}`);
+        if (btn) {
+          if (t === tab) {
+            btn.className = "py-2 rounded-xl text-xs font-bold bg-white text-indigo-600 shadow-sm transition";
+          } else {
+            btn.className = "py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 transition";
+          }
+        }
+        if (content) {
+          if (t === tab) {
+            content.classList.remove('hidden');
+          } else {
+            content.classList.add('hidden');
+          }
+        }
+      });
+    }
+
+    // Client-side image compressor for safe API payload
+    async function compressImageToSafeDataUrl(file, maxDimension = 1280, quality = 0.82) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const rawUrl = e.target.result;
+          const img = new Image();
+          img.onload = () => {
+            try {
+              let width = img.width;
+              let height = img.height;
+              if (width > maxDimension || height > maxDimension) {
+                if (width > height) {
+                  height = Math.round((height * maxDimension) / width);
+                  width = maxDimension;
+                } else {
+                  width = Math.round((width * maxDimension) / height);
+                  height = maxDimension;
+                }
+              }
+              const canvas = document.createElement('canvas');
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext('2d');
+              ctx.fillStyle = '#ffffff';
+              ctx.fillRect(0, 0, width, height);
+              ctx.drawImage(img, 0, 0, width, height);
+              resolve(canvas.toDataURL('image/jpeg', quality));
+            } catch (err) {
+              resolve(rawUrl);
+            }
+          };
+          img.onerror = () => resolve(rawUrl);
+          img.src = rawUrl;
+        };
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function handleBattlePhotoSelected(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      battleUploadedImageBase64 = await compressImageToSafeDataUrl(file);
+      const preview = document.getElementById('battle-photo-preview-img');
+      const box = document.getElementById('battle-photo-preview-box');
+      if (preview) preview.src = battleUploadedImageBase64;
+      if (box) box.classList.remove('hidden');
+      document.getElementById('battle-photo-extracted-status')?.classList.add('hidden');
+    }
+
+    // 5-Layer Resilient Parser from Gemini response
+    function parseVocabJsonFromText(rawText) {
+      if (!rawText) return null;
+      let clean = String(rawText).trim();
+
+      clean = clean.replace(/```(?:json)?\s*/gi, '').replace(/```\s*$/gi, '').trim();
+
+      try {
+        const parsed = JSON.parse(clean);
+        if (Array.isArray(parsed) && parsed.length > 0) return sanitizeExtractedList(parsed);
+        if (parsed?.words && Array.isArray(parsed.words)) return sanitizeExtractedList(parsed.words);
+        if (parsed?.vocabulary && Array.isArray(parsed.vocabulary)) return sanitizeExtractedList(parsed.vocabulary);
+      } catch (e) {}
+
+      const match = clean.match(/\[\s*\{[\s\S]*\}\s*\]/);
+      if (match) {
+        try {
+          const parsed = JSON.parse(match[0]);
+          if (Array.isArray(parsed) && parsed.length > 0) return sanitizeExtractedList(parsed);
+        } catch(e) {}
+      }
+
+      const items = [];
+      const objRegex = /\{\s*["']phrase["']\s*:\s*["']([^"']+)["']\s*,\s*["']meaning["']\s*:\s*["']([^"']+)["']/gi;
+      let m;
+      while ((m = objRegex.exec(clean)) !== null) {
+        items.push({ phrase: m[1].trim(), meaning: m[2].trim(), target: m[1].trim().split(' ')[0] });
+      }
+      if (items.length > 0) return sanitizeExtractedList(items);
+
+      const lines = clean.split('\n');
+      for (const line of lines) {
+        const parts = line.replace(/^\d+[\.\)]\s*/, '').split(/[:\-=\t—]+/).map(s => s.trim());
+        if (parts.length >= 2 && /[a-zA-Z]/.test(parts[0]) && /[가-힣]/.test(parts[1])) {
+          items.push({ phrase: parts[0], meaning: parts[1], target: parts[0].split(' ')[0] });
+        }
+      }
+      return items.length > 0 ? sanitizeExtractedList(items) : null;
+    }
+
+    function sanitizeExtractedList(list) {
+      return list.map((item, idx) => {
+        const phrase = (item.phrase || item.target || item.word || '').trim();
+        const meaning = (item.meaning || item.korean || '').trim();
+        const target = (item.target || phrase.split(' ')[0] || '').trim();
+        return { id: idx + 1, phrase, meaning, target };
+      }).filter(item => item.phrase.length > 0 && item.meaning.length > 0);
+    }
+
+    // Helper for Gemini fetch with exponential backoff & dual header support
+    async function callGeminiWithBackoff(apiUrl, payload, apiKey, retries = 3) {
+      let delay = 1000;
+      for (let i = 0; i < retries; i++) {
+        try {
+          const headers = { 'Content-Type': 'application/json' };
+          if (apiKey) headers['x-goog-api-key'] = apiKey;
+
+          const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(payload)
+          });
+          if (response.ok) {
+            return await response.json();
+          }
+        } catch (e) {
+          // ignore error and retry
+        }
+        await new Promise(res => setTimeout(res, delay));
+        delay *= 2;
+      }
+      throw new Error("Gemini API call failed after retries");
+    }
+
+    async function analyzeBattlePhotoWithGemini() {
+      if (!battleUploadedImageBase64) return;
+      const loading = document.getElementById('battle-photo-loading');
+      const btn = document.getElementById('battle-photo-analyze-btn');
+      const statusBox = document.getElementById('battle-photo-extracted-status');
+
+      loading?.classList.remove('hidden');
+      if (btn) btn.disabled = true;
+
+      try {
+        const base64Data = battleUploadedImageBase64.replace(/^data:image\/\w+;base64,/, '');
+
+        const prompt = `당신은 영어 교육 전문 AI입니다. 이 사진은 영어 단어장, 교재 또는 시험지입니다.
+사진 속의 모든 영어 단어(또는 구문/연어 Collocation)와 그에 대응하는 한국어 뜻을 하나도 빠짐없이 인식하여 정확하게 추출하세요.
+표 형식, 2열 분할, 번호나 별표가 붙은 형태 등 모든 구조를 파악해 빠짐없이 추출하세요.
+
+반드시 다음 JSON 배열 형식으로만 응답하세요:
+[
+  {
+    "phrase": "영어 표현 전체 (예: covet money, permanent residence)",
+    "meaning": "한국어 뜻 (예: 돈을 탐내다, 영주권)",
+    "target": "핵심 타깃 단어 (예: covet, residence)"
+  }
+]`;
+
+        const payload = {
+          contents: [{
+            role: "user",
+            parts: [
+              { text: prompt },
+              { inlineData: { mimeType: "image/jpeg", data: base64Data } }
+            ]
+          }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            temperature: 0.1
+          }
+        };
+
+        const apiKey = "AQ.Ab8RN6Jlt60f2G5iGLncdznIbhidSpVhTiQdOxGhHphKa9zl6w";
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+        const result = await callGeminiWithBackoff(apiUrl, payload, apiKey);
+        const jsonText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+        const parsed = parseVocabJsonFromText(jsonText);
+
+        if (parsed && Array.isArray(parsed) && parsed.length >= 1) {
+          battleExtractedFromPhoto = parsed;
+
+          if (statusBox) {
+            statusBox.innerHTML = `✨ <strong>AI 추출 완료:</strong> 총 <strong>${battleExtractedFromPhoto.length}</strong>개의 단어를 사진에서 성공적으로 인식했습니다!`;
+            statusBox.className = "text-xs font-bold text-emerald-700 p-3 bg-emerald-50 rounded-xl border border-emerald-300 text-center";
+            statusBox.classList.remove('hidden');
+          }
+
+          const qInput = document.getElementById('battle-room-question-input');
+          if (qInput) qInput.value = battleExtractedFromPhoto.length;
+        } else {
+          throw new Error("Parsing failed");
+        }
+      } catch (err) {
+        console.error("AI photo error", err);
+        if (statusBox) {
+          statusBox.innerHTML = "⚠️ 사진에서 단어를 인식하지 못했습니다. 글씨가 선명하게 찍힌 사진으로 다시 시도해주세요.";
+          statusBox.className = "text-xs font-bold text-rose-700 p-3 bg-rose-50 rounded-xl border border-rose-300 text-center";
+          statusBox.classList.remove('hidden');
+        }
+      } finally {
+        loading?.classList.add('hidden');
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function confirmAndCreateBattleRoom() {
+      let finalQuestions = null;
+      const rawCountInput = document.getElementById('battle-room-question-input')?.value;
+      let targetCount = parseInt(rawCountInput, 10);
+
+      if (battleCustomWordTab === 'typing') {
+        const text = document.getElementById('battle-custom-typing-text')?.value.trim();
+        if (!text) {
+          showCustomNotice("단어 입력 필요", "직접 타이핑 모드에서는 단어를 1개 이상 입력해주세요.");
+          return;
+        }
+
+        const lines = text.split('\n');
+        const typed = [];
+        lines.forEach((line, idx) => {
+          const cleaned = line.trim();
+          if (!cleaned) return;
+          const parts = cleaned.split(/[:\t,]/);
+          if (parts.length >= 2) {
+            const p = parts[0].trim();
+            const m = parts.slice(1).join(' ').trim();
+            typed.push({ id: idx + 1, phrase: p, meaning: m, target: p.split(' ')[0] });
+          }
+        });
+
+        if (typed.length < 1) {
+          showCustomNotice("단어 부족", "대전을 위해 최소 1개 이상의 단어(영어 : 뜻)를 입력해주세요.");
+          return;
+        }
+
+        if (isNaN(targetCount) || targetCount <= 0 || targetCount >= typed.length) {
+          finalQuestions = typed;
+        } else {
+          finalQuestions = typed.sort(() => 0.5 - Math.random()).slice(0, targetCount);
+        }
+      } else if (battleCustomWordTab === 'photo') {
+        if (!battleExtractedFromPhoto || battleExtractedFromPhoto.length < 1) {
+          showCustomNotice("사진 분석 필요", "사진을 업로드한 후 'AI로 단어 추출하기'를 먼저 진행해주세요.");
+          return;
+        }
+        if (isNaN(targetCount) || targetCount <= 0 || targetCount >= battleExtractedFromPhoto.length) {
+          finalQuestions = [...battleExtractedFromPhoto];
+        } else {
+          finalQuestions = [...battleExtractedFromPhoto].sort(() => 0.5 - Math.random()).slice(0, targetCount);
+        }
+      } else {
+        const pool = [...window.VOCAB_DATA].sort(() => 0.5 - Math.random());
+        if (isNaN(targetCount) || targetCount <= 0 || targetCount >= pool.length) {
+          finalQuestions = pool;
+        } else {
+          finalQuestions = pool.slice(0, targetCount);
+        }
+      }
+
+      closeCreateBattleModal();
+
+      const result = await window.realtimeBattle.createRoom(finalQuestions, selectedPuppyRewardMode);
+      if (!result) {
+        showCustomNotice("오류", "대전방을 생성할 수 없습니다. 잠시 후 다시 시도해주세요.");
+        return;
+      }
+
+      document.getElementById('battle-lobby-controls')?.classList.add('hidden');
+      document.getElementById('battle-waiting-box')?.classList.remove('hidden');
+      const disp = document.getElementById('battle-display-code');
+      const cnt = document.getElementById('battle-custom-word-count');
+      if (disp) disp.innerText = result.code;
+      if (cnt) cnt.innerText = result.totalQuestions;
+    }
+
+    function loadBattleQuestion() {
+      const totalQ = battleActiveQuestions.length;
+      if (battleRound >= totalQ) return;
+
+      isBattleAnsweringLocked = false;
+      document.getElementById('battle-puppy-modal')?.classList.add('hidden');
+      document.getElementById('puppy-reward-result')?.classList.add('hidden');
+      document.getElementById('battle-cooldown-banner')?.classList.add('hidden');
+
+      const q = battleActiveQuestions[battleRound];
+      const roundNumEl = document.getElementById('battle-round-num');
+      const wordEl = document.getElementById('battle-question-word');
+      if (roundNumEl) roundNumEl.innerText = battleRound + 1;
+      if (wordEl) wordEl.innerText = q.phrase;
+
+      const pool = [...battleActiveQuestions, ...window.VOCAB_DATA];
+      const distractors = pool
+        .filter(item => item.phrase !== q.phrase && item.meaning !== q.meaning)
+        .sort(() => 0.5 - Math.random())
+        .slice(0, 3)
+        .map(item => item.meaning);
+
+      const options = [...distractors, q.meaning].sort(() => 0.5 - Math.random());
+      const grid = document.getElementById('battle-options-grid');
+      if (!grid) return;
+      grid.innerHTML = '';
+
+      options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = "w-full text-left p-3.5 rounded-2xl clean-card clean-card-hover font-bold text-slate-800 text-xs sm:text-sm";
+        btn.innerText = opt;
+        btn.onclick = () => handleBattleAnswer(opt, q.meaning, btn);
+        grid.appendChild(btn);
+      });
+    }
+
+    function handleBattleAnswer(selected, correct, btn) {
+      if (isBattleAnsweringLocked) return;
+      isBattleAnsweringLocked = true;
+
+      const isCorrect = selected === correct;
+      const allBtns = document.querySelectorAll('#battle-options-grid button');
+      allBtns.forEach(b => b.disabled = true);
+
+      const bState = window.realtimeBattle.getBattleState();
+      const isPuppyEnabled = bState ? (bState.enablePuppyReward !== false) : true;
+
+      if (isCorrect) {
+        btn.classList.add('!bg-emerald-50', '!border-emerald-500', '!text-emerald-700');
+        if (isPuppyEnabled) {
+          showPuppySelectionModal();
+        } else {
+          // No puppy reward mode: +100 points directly and move to next
+          battleMyScore += 100;
+          battleRound++;
+          window.realtimeBattle.submitProgress(battleRound, 100, null);
+
+          const myScoreEl = document.getElementById('battle-my-live-score');
+          if (myScoreEl) myScoreEl.innerText = battleMyScore;
+
+          const fb = document.getElementById('battle-feedback');
+          if (fb) {
+            fb.className = "h-6 text-xs font-bold text-emerald-600 opacity-100 transition-opacity";
+            fb.innerText = "정답입니다! (+100점)";
+          }
+
+          if (typeof confetti === 'function') {
+            confetti({ particleCount: 25, spread: 50, origin: { y: 0.6 } });
+          }
+
+          const totalQ = battleActiveQuestions.length;
+          setTimeout(() => {
+            if (fb) fb.classList.remove('opacity-100');
+            if (battleRound < totalQ) {
+              loadBattleQuestion();
+            } else {
+              const grid = document.getElementById('battle-options-grid');
+              if (grid) {
+                grid.innerHTML = `
+                  <div class="col-span-full text-center py-6 text-xs text-slate-500 font-bold">
+                    <i class="fa-solid fa-spinner animate-spin mr-1 text-indigo-600"></i> 다른 참가자의 완료를 기다리고 있습니다...
+                  </div>
+                `;
+              }
+            }
+          }, 900);
+        }
+      } else {
+        btn.classList.add('!bg-rose-50', '!border-rose-400', '!text-rose-700');
+        allBtns.forEach(b => {
+          if (b.innerText.trim() === correct) {
+            b.classList.add('!bg-emerald-50', '!border-emerald-400', '!text-emerald-700');
+          }
+        });
+        startWrongCooldownPenalty();
+      }
+    }
+
+    function startWrongCooldownPenalty() {
+      const banner = document.getElementById('battle-cooldown-banner');
+      const secText = document.getElementById('battle-cooldown-seconds');
+      const bar = document.getElementById('battle-cooldown-bar');
+
+      banner?.classList.remove('hidden');
+      let timeLeft = 3;
+      if (secText) secText.innerText = timeLeft;
+      if (bar) bar.style.width = '100%';
+
+      const interval = setInterval(() => {
+        timeLeft--;
+        if (timeLeft > 0) {
+          if (secText) secText.innerText = timeLeft;
+          if (bar) bar.style.width = `${(timeLeft / 3) * 100}%`;
+        } else {
+          clearInterval(interval);
+          if (bar) bar.style.width = '0%';
+          banner?.classList.add('hidden');
+
+          battleRound++;
+          window.realtimeBattle.submitProgress(battleRound, 0, null);
+
+          const totalQ = battleActiveQuestions.length;
+          if (battleRound < totalQ) {
+            loadBattleQuestion();
+          } else {
+            const grid = document.getElementById('battle-options-grid');
+            if (grid) {
+              grid.innerHTML = `
+                <div class="col-span-full text-center py-6 text-xs text-slate-500 font-bold">
+                  <i class="fa-solid fa-spinner animate-spin mr-1 text-indigo-600"></i> 다른 참가자의 완료를 기다리고 있습니다...
+                </div>
+              `;
+            }
+          }
+        }
+      }, 1000);
+    }
+
+    function resetBattleView() {
+      window.realtimeBattle.cancelRoom();
+      battleActiveQuestions = [];
+      battleRound = 0;
+      battleMyScore = 0;
+      document.getElementById('battle-result-box')?.classList.add('hidden');
+      document.getElementById('battle-active-arena')?.classList.add('hidden');
+      document.getElementById('battle-waiting-box')?.classList.add('hidden');
+      document.getElementById('battle-lobby-controls')?.classList.remove('hidden');
+    }
+
+    // ================= NICKNAME MODAL =================
+    function promptEditNickname() {
+      const input = document.getElementById('nickname-input');
+      if (input) input.value = window.cloudService.getNickname();
+      document.getElementById('nickname-modal')?.classList.remove('hidden');
+    }
+    function closeNicknameModal() {
+      document.getElementById('nickname-modal')?.classList.add('hidden');
+    }
+    function saveNewNickname() {
+      const newName = document.getElementById('nickname-input')?.value.trim();
+      if (newName) {
+        window.saveNewNicknameDirect(newName);
+      }
+      closeNicknameModal();
+    }
+
+    // ================= AUTOPLAY MODE =================
+    let autoplayIndex = 0;
+    let autoplayTimer = null;
+    let isAutoplayRunning = false;
+    let autoplayOrderList = [];
+
+    function startAutoplayMode() {
+      resetAutoplayOrder();
+      autoplayIndex = 0;
+      isAutoplayRunning = true;
+      updateAutoplayUIState();
+      playCurrentAutoplayStep();
+    }
+
+    function resetAutoplayOrder() {
+      const orderType = document.getElementById('autoplay-order')?.value || 'sequential';
+      if (orderType === 'shuffle') {
+        autoplayOrderList = [...window.VOCAB_DATA].sort(() => 0.5 - Math.random());
+      } else {
+        autoplayOrderList = [...window.VOCAB_DATA];
+      }
+    }
+
+    function playCurrentAutoplayStep() {
+      if (!isAutoplayRunning || autoplayOrderList.length === 0) return;
+      if (autoplayIndex >= autoplayOrderList.length) autoplayIndex = 0;
+
+      const item = autoplayOrderList[autoplayIndex];
+      const cnt = document.getElementById('autoplay-counter');
+      const phr = document.getElementById('autoplay-phrase');
+      const mean = document.getElementById('autoplay-meaning');
+      const pBar = document.getElementById('autoplay-word-progress');
+
+      if (cnt) cnt.innerText = `${autoplayIndex + 1} / ${autoplayOrderList.length}`;
+      if (phr) phr.innerText = item.phrase;
+      if (mean) mean.innerText = item.meaning;
+      if (pBar) pBar.style.width = `${((autoplayIndex + 1) / autoplayOrderList.length) * 100}%`;
+
+      playTTS(item.phrase);
+
+      const intervalMs = parseInt(document.getElementById('autoplay-interval')?.value || '3500', 10);
+      clearTimeout(autoplayTimer);
+      autoplayTimer = setTimeout(() => {
+        if (isAutoplayRunning) {
+          autoplayIndex++;
+          window.cloudService.addXP(1);
+          playCurrentAutoplayStep();
+        }
+      }, intervalMs);
+    }
+
+    function toggleAutoplayState() {
+      isAutoplayRunning = !isAutoplayRunning;
+      updateAutoplayUIState();
+      if (isAutoplayRunning) playCurrentAutoplayStep();
+      else clearTimeout(autoplayTimer);
+    }
+
+    function updateAutoplayUIState() {
+      const icon = document.getElementById('autoplay-play-icon');
+      const badge = document.getElementById('autoplay-status-badge');
+      if (isAutoplayRunning) {
+        if (icon) icon.className = "fa-solid fa-pause";
+        if (badge) badge.innerHTML = `<i class="fa-solid fa-circle-play text-indigo-600 mr-1 animate-pulse"></i> 재생 중`;
+      } else {
+        if (icon) icon.className = "fa-solid fa-play ml-1";
+        if (badge) badge.innerHTML = `<i class="fa-solid fa-circle-pause text-slate-400 mr-1"></i> 일시정지 됨`;
+      }
+    }
+
+    function nextAutoplayWord() {
+      clearTimeout(autoplayTimer);
+      autoplayIndex = (autoplayIndex + 1) % autoplayOrderList.length;
+      playCurrentAutoplayStep();
+    }
+
+    function prevAutoplayWord() {
+      clearTimeout(autoplayTimer);
+      autoplayIndex = (autoplayIndex - 1 + autoplayOrderList.length) % autoplayOrderList.length;
+      playCurrentAutoplayStep();
+    }
+
+    function stopAutoplayLoop() {
+      isAutoplayRunning = false;
+      clearTimeout(autoplayTimer);
+    }
+
+    // ================= AI PRONUNCIATION COACH =================
+    let coachIndex = 0;
+    let coachRecognition = null;
+    let isCoachRecording = false;
+
+    function startCoachMode() {
+      coachIndex = 0;
+      loadCoachCurrentItem();
+      initSpeechRecognition();
+    }
+
+    function loadCoachCurrentItem() {
+      if (window.VOCAB_DATA.length === 0) return;
+      const item = window.VOCAB_DATA[coachIndex];
+      const prog = document.getElementById('coach-progress');
+      const phr = document.getElementById('coach-phrase');
+      const mean = document.getElementById('coach-meaning');
+      const speech = document.getElementById('coach-user-speech');
+
+      if (prog) prog.innerText = `${coachIndex + 1} / ${window.VOCAB_DATA.length}`;
+      if (phr) phr.innerText = item.phrase;
+      if (mean) mean.innerText = item.meaning;
+      if (speech) speech.innerText = '"마이크를 누르고 말씀하세요"';
+      document.getElementById('coach-badge-container')?.classList.add('hidden');
+    }
+
+    function playCoachAudio() {
+      if (window.VOCAB_DATA[coachIndex]) playTTS(window.VOCAB_DATA[coachIndex].phrase);
+    }
+
+    function prevCoachItem() {
+      stopCoachRecognition();
+      coachIndex = (coachIndex - 1 + window.VOCAB_DATA.length) % window.VOCAB_DATA.length;
+      loadCoachCurrentItem();
+    }
+
+    function nextCoachItem() {
+      stopCoachRecognition();
+      coachIndex = (coachIndex + 1) % window.VOCAB_DATA.length;
+      loadCoachCurrentItem();
+    }
+
+    function initSpeechRecognition() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) return;
+
+      coachRecognition = new SpeechRecognition();
+      coachRecognition.lang = 'en-US';
+      coachRecognition.interimResults = false;
+
+      coachRecognition.onstart = () => {
+        isCoachRecording = true;
+        document.getElementById('coach-mic-btn')?.classList.add('animate-pulse', '!bg-emerald-500');
+        const tip = document.getElementById('coach-mic-tip');
+        const speech = document.getElementById('coach-user-speech');
+        if (tip) tip.innerText = "듣고 있습니다... 말씀하세요!";
+        if (speech) speech.innerText = "분석 중...";
+      };
+
+      coachRecognition.onresult = (event) => {
+        const spoken = event.results[0][0].transcript.trim().toLowerCase();
+        evaluatePronunciation(spoken);
+      };
+
+      coachRecognition.onerror = () => {
+        stopCoachRecognition();
+        const speech = document.getElementById('coach-user-speech');
+        if (speech) speech.innerText = "음성을 인식하지 못했습니다. 다시 시도해주세요.";
+      };
+
+      coachRecognition.onend = () => stopCoachRecognition();
+    }
+
+    function togglePronunciationRecording() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        const speech = document.getElementById('coach-user-speech');
+        if (speech) speech.innerText = `"${window.VOCAB_DATA[coachIndex].phrase}" (테스트 판정)`;
+        evaluatePronunciation(window.VOCAB_DATA[coachIndex].phrase.toLowerCase());
+        return;
+      }
+
+      if (isCoachRecording) {
+        stopCoachRecognition();
+      } else {
+        try {
+          if (!coachRecognition) initSpeechRecognition();
+          coachRecognition.start();
+        } catch(e) {
+          stopCoachRecognition();
+        }
+      }
+    }
+
+    function stopCoachRecognition() {
+      isCoachRecording = false;
+      const btn = document.getElementById('coach-mic-btn');
+      const tip = document.getElementById('coach-mic-tip');
+      if (btn) btn.classList.remove('animate-pulse', '!bg-emerald-500');
+      if (tip) tip.innerText = "마이크 버튼을 누르고 말씀하세요";
+      if (coachRecognition) {
+        try { coachRecognition.stop(); } catch(e){}
+      }
+    }
+
+    function evaluatePronunciation(spokenText) {
+      const currentItem = window.VOCAB_DATA[coachIndex];
+      const targetPhrase = currentItem.phrase.toLowerCase();
+      const targetWord = currentItem.target.toLowerCase();
+
+      const speech = document.getElementById('coach-user-speech');
+      if (speech) speech.innerText = `"${spokenText}"`;
+
+      const isExact = spokenText === targetPhrase || spokenText.includes(targetPhrase);
+      const isPartial = spokenText.includes(targetWord);
+      let score = isExact ? 100 : (isPartial ? 80 : 40);
+
+      const badgeContainer = document.getElementById('coach-badge-container');
+      const badge = document.getElementById('coach-rating-badge');
+      const feedback = document.getElementById('coach-feedback-text');
+      badgeContainer?.classList.remove('hidden');
+
+      if (score >= 80) {
+        if (badge) {
+          badge.className = "px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300";
+          badge.innerText = "🌟 EXCELLENT (완벽한 발음!)";
+        }
+        if (feedback) feedback.innerText = "원어민 수준의 명확하고 정확한 억양과 발음입니다.";
+        userStats.mastered.add(currentItem.id);
+        updateMasteredCount();
+        window.cloudService.addXP(15);
+        if (typeof confetti === 'function') confetti({ particleCount: 25, spread: 50, origin: { y: 0.7 } });
+      } else {
+        if (badge) {
+          badge.className = "px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-300";
+          badge.innerText = "⚠️ TRY AGAIN (BAD)";
+        }
+        if (feedback) feedback.innerText = `발음이 다소 다릅니다. 원어민 발음 듣기를 누른 뒤 다시 따라해보세요.`;
+        window.cloudService.addXP(3);
+      }
+    }
+
+    // ================= VOCAB SETTINGS & UPLOAD =================
+    function initSettingsView() {
+      const textarea = document.getElementById('custom-vocab-textarea');
+      if (textarea) {
+        textarea.value = window.VOCAB_DATA.map(item => `${item.phrase} : ${item.meaning}`).join('\n');
+      }
+    }
+
+    function switchSettingSubTab(tab) {
+      const textBtn = document.getElementById('setting-tab-text-btn');
+      const photoBtn = document.getElementById('setting-tab-photo-btn');
+      const textTab = document.getElementById('setting-subtab-text');
+      const photoTab = document.getElementById('setting-subtab-photo');
+
+      if (tab === 'text') {
+        if (textBtn) textBtn.className = "py-2.5 rounded-xl font-bold text-xs bg-indigo-600 text-white shadow-sm transition";
+        if (photoBtn) photoBtn.className = "py-2.5 rounded-xl font-bold text-xs bg-slate-100 text-slate-600 hover:text-slate-900 transition";
+        textTab?.classList.remove('hidden');
+        photoTab?.classList.add('hidden');
+      } else {
+        if (photoBtn) photoBtn.className = "py-2.5 rounded-xl font-bold text-xs bg-indigo-600 text-white shadow-sm transition";
+        if (textBtn) textBtn.className = "py-2.5 rounded-xl font-bold text-xs bg-slate-100 text-slate-600 hover:text-slate-900 transition";
+        photoTab?.classList.remove('hidden');
+        textTab?.classList.add('hidden');
+      }
+    }
+
+    function applyCustomTextVocab() {
+      const text = document.getElementById('custom-vocab-textarea')?.value.trim();
+      if (!text) return;
+
+      const lines = text.split('\n');
+      const newVocab = [];
+
+      lines.forEach((line, index) => {
+        const cleaned = line.trim();
+        if (!cleaned) return;
+        
+        let parts = cleaned.split(/[:\t,]/);
+        if (parts.length >= 2) {
+          const phrase = parts[0].trim();
+          const meaning = parts.slice(1).join(' ').trim();
+          const firstWord = phrase.split(' ')[0] || phrase;
+
+          newVocab.push({
+            id: index + 1,
+            phrase: phrase,
+            target: firstWord,
+            meaning: meaning
+          });
+        }
+      });
+
+      if (newVocab.length > 0) {
+        window.VOCAB_DATA = newVocab;
+        userStats.mastered.clear();
+        userStats.starred.clear();
+        updateMasteredCount();
+        window.cloudService.addXP(30);
+        showCustomNotice("단어장 업로드 완료!", `총 ${newVocab.length}개의 단어가 모든 게임과 대전에 즉시 적용되었습니다.`);
+      }
+    }
+
+    let uploadedBase64Image = null;
+
+    async function handleVocabImageUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      uploadedBase64Image = await compressImageToSafeDataUrl(file);
+      const preview = document.getElementById('vocab-image-preview');
+      const container = document.getElementById('vocab-image-preview-container');
+      if (preview) preview.src = uploadedBase64Image;
+      container?.classList.remove('hidden');
+    }
+
+    async function analyzeVocabImageWithGemini() {
+      if (!uploadedBase64Image) return;
+
+      const loading = document.getElementById('ai-extract-loading');
+      const btn = document.getElementById('ai-extract-btn');
+      loading?.classList.remove('hidden');
+      if (btn) btn.disabled = true;
+
+      try {
+        const base64Data = uploadedBase64Image.replace(/^data:image\/\w+;base64,/, '');
+
+        const prompt = `당신은 영어 어휘 추출 전문가입니다.
+제공된 단어장/학습지 사진에서 모든 영어 표현(단어/연어/구문)과 이에 해당하는 한국어 번역 뜻을 전부 추출하세요.
+단어 목록 표, 2열 분할, 별표 목록 등 사진의 모든 텍스트 영역을 꼼꼼하게 읽어주세요.
+
+반드시 유효한 JSON 배열로 응답하세요:
+[
+  {
+    "phrase": "영어 표현 전체 (예: covet money)",
+    "meaning": "한국어 뜻 (예: 돈을 탐내다)",
+    "target": "핵심 어휘 (예: covet)"
+  }
+]`;
+
+        const payload = {
+          contents: [
+            {
+              role: "user",
+              parts: [
+                { text: prompt },
+                {
+                  inlineData: {
+                    mimeType: "image/jpeg",
+                    data: base64Data
+                  }
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            responseMimeType: "application/json",
+            temperature: 0.1
+          }
+        };
+
+        const apiKey = "AQ.Ab8RN6Jlt60f2G5iGLncdznIbhidSpVhTiQdOxGhHphKa9zl6w";
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+        const result = await callGeminiWithBackoff(apiUrl, payload, apiKey);
+        const jsonText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+        const parsed = parseVocabJsonFromText(jsonText);
+
+        if (parsed && Array.isArray(parsed) && parsed.length > 0) {
+          window.VOCAB_DATA = parsed;
+          userStats.mastered.clear();
+          userStats.starred.clear();
+          updateMasteredCount();
+          initSettingsView();
+          window.cloudService.addXP(50);
+          showCustomNotice("AI 사진 인식 성공!", `사진 속에서 ${window.VOCAB_DATA.length}개의 단어를 정확히 인식하여 게임 전체에 적용했습니다.`);
+        } else {
+          throw new Error("JSON parse failure");
+        }
+      } catch (err) {
+        console.error("AI Vocab Extraction Failed:", err);
+        let detail = err.message || "";
+        if (window.location.protocol === 'file:') {
+          detail += "\n(크롬 로컬 파일 file:// 프로토콜 보안 차단입니다. Live Server 또는 웹 호스팅 환경에서 실행해주세요.)";
+        }
+        showCustomNotice("단어 추출 오류", `사진 분석 중 오류가 발생했습니다:\n${detail}`);
+      } finally {
+        loading?.classList.add('hidden');
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    function restoreDefaultVocab() {
+      window.VOCAB_DATA = [...DEFAULT_VOCAB_DATA];
+      userStats.mastered.clear();
+      userStats.starred.clear();
+      updateMasteredCount();
+      initSettingsView();
+      showCustomNotice("기본 단어장 복원 완료", "기본 Eagle C2 debate 40개 단어로 복원되었습니다.");
+    }
+
+    function showCustomNotice(title, desc) {
+      const modal = document.getElementById('game-over-modal');
+      if (!modal) return;
+      const h3 = modal.querySelector('h3');
+      const p = modal.querySelector('p');
+      const score = document.getElementById('modal-final-score');
+      const acc = document.getElementById('modal-final-acc');
+
+      if (h3) h3.innerText = title;
+      if (p) p.innerText = desc;
+      if (score) score.innerText = "완료";
+      if (acc) acc.innerText = "+XP";
+      modal.classList.remove('hidden');
+    }
+
+    // ================= SPEED QUIZ =================
+    let quizQuestions = [];
+    let currentQuizIndex = 0;
+    let quizScore = 0;
+    let quizStreak = 0;
+    let quizTimer = null;
+    let quizTimeLeft = 10;
+    const QUIZ_ROUND_COUNT = 15;
+
+    function startSpeedQuiz() {
+      quizQuestions = [...window.VOCAB_DATA].sort(() => 0.5 - Math.random()).slice(0, Math.min(QUIZ_ROUND_COUNT, window.VOCAB_DATA.length));
+      currentQuizIndex = 0;
+      quizScore = 0;
+      quizStreak = 0;
+      const scr = document.getElementById('quiz-score');
+      const strk = document.getElementById('quiz-streak');
+      const tot = document.getElementById('quiz-total-num');
+      if (scr) scr.innerText = '0';
+      if (strk) strk.innerText = '0';
+      if (tot) tot.innerText = quizQuestions.length;
+      loadQuizQuestion();
+    }
+
+    function loadQuizQuestion() {
+      clearInterval(quizTimer);
+      if (currentQuizIndex >= quizQuestions.length) {
+        showGameOverModal(quizScore, `+${Math.round(quizScore / 10)} XP`);
+        window.cloudService.addXP(Math.round(quizScore / 10));
+        return;
+      }
+
+      const q = quizQuestions[currentQuizIndex];
+      const curNum = document.getElementById('quiz-current-num');
+      const wordEl = document.getElementById('quiz-question-word');
+      if (curNum) curNum.innerText = currentQuizIndex + 1;
+      if (wordEl) wordEl.innerText = q.phrase;
+
+      const starBtn = document.getElementById('quiz-star-btn');
+      if (starBtn) {
+        starBtn.innerHTML = userStats.starred.has(q.id) ? '<i class="fa-solid fa-star text-amber-500"></i>' : '<i class="fa-regular fa-star"></i>';
+      }
+
+      const distractors = window.VOCAB_DATA
+        .filter(item => item.id !== q.id)
+        .sort(() => 0.5 - Math.random())
+        .slice(0, 3)
+        .map(item => item.meaning);
+
+      const options = [...distractors, q.meaning].sort(() => 0.5 - Math.random());
+      const optionsContainer = document.getElementById('quiz-options-grid');
+      if (!optionsContainer) return;
+      optionsContainer.innerHTML = '';
+      
+      options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = "w-full text-left p-4 rounded-2xl clean-card clean-card-hover font-semibold text-slate-700 text-sm sm:text-base flex items-center justify-between group";
+        btn.innerHTML = `<span>${opt}</span><i class="fa-solid fa-chevron-right text-xs opacity-0 group-hover:opacity-100 transition-opacity text-indigo-600"></i>`;
+        btn.onclick = () => handleQuizAnswer(opt, q.meaning, btn);
+        optionsContainer.appendChild(btn);
+      });
+
+      playTTS(q.phrase);
+      startQuizTimer();
+    }
+
+    function startQuizTimer() {
+      quizTimeLeft = 10;
+      updateTimerUI(10);
+      quizTimer = setInterval(() => {
+        quizTimeLeft -= 0.1;
+        if (quizTimeLeft <= 0) {
+          clearInterval(quizTimer);
+          handleQuizTimeout();
+        } else {
+          updateTimerUI(quizTimeLeft);
+        }
+      }, 100);
+    }
+
+    function updateTimerUI(seconds) {
+      const textEl = document.getElementById('quiz-timer-text');
+      const circleEl = document.getElementById('quiz-timer-circle');
+      const clamped = Math.max(0, seconds);
+      if (textEl) textEl.innerText = Math.ceil(clamped);
+      const strokeVal = (clamped / 10) * 100;
+      if (circleEl) {
+        circleEl.setAttribute('stroke-dasharray', `${strokeVal}, 100`);
+        circleEl.setAttribute('class', clamped <= 3 ? 'text-rose-500 transition-all duration-100 ease-linear' : 'text-indigo-600 transition-all duration-100 ease-linear');
+      }
+    }
+
+    function handleQuizAnswer(selected, correct, selectedBtn) {
+      clearInterval(quizTimer);
+      const isCorrect = selected === correct;
+      const q = quizQuestions[currentQuizIndex];
+      const feedback = document.getElementById('quiz-feedback');
+      const allButtons = document.querySelectorAll('#quiz-options-grid button');
+
+      allButtons.forEach(btn => btn.disabled = true);
+
+      if (isCorrect) {
+        selectedBtn.classList.add('!bg-emerald-50', '!border-emerald-500', '!text-emerald-700');
+        quizStreak += 1;
+        const streakBonus = Math.min(quizStreak * 10, 50);
+        quizScore += 100 + streakBonus;
+        userStats.mastered.add(q.id);
+        updateMasteredCount();
+        window.cloudService.addXP(10);
+
+        if (feedback) {
+          feedback.className = "h-10 w-full flex items-center justify-center text-sm font-bold rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 opacity-100 transition-opacity";
+          feedback.innerHTML = `<i class="fa-solid fa-circle-check mr-2"></i> 정답입니다! (+${100 + streakBonus}점)`;
+        }
+        
+        if (quizStreak > 2 && typeof confetti === 'function') {
+          confetti({ particleCount: 25, spread: 50, origin: { y: 0.8 } });
+        }
+      } else {
+        selectedBtn.classList.add('!bg-rose-50', '!border-rose-400', '!text-rose-700');
+        quizStreak = 0;
+        allButtons.forEach(btn => {
+          if (btn.innerText.trim() === correct) {
+            btn.classList.add('!bg-emerald-50', '!border-emerald-500', '!text-emerald-700');
+          }
+        });
+
+        if (feedback) {
+          feedback.className = "h-10 w-full flex items-center justify-center text-sm font-bold rounded-xl bg-rose-50 text-rose-700 border border-rose-200 opacity-100 transition-opacity";
+          feedback.innerHTML = `<i class="fa-solid fa-circle-xmark mr-2"></i> 오답! 정답: <strong>${correct}</strong>`;
+        }
+      }
+
+      const scr = document.getElementById('quiz-score');
+      const strk = document.getElementById('quiz-streak');
+      if (scr) scr.innerText = quizScore;
+      if (strk) strk.innerText = quizStreak;
+
+      setTimeout(() => {
+        if (feedback) {
+          feedback.classList.remove('opacity-100');
+          feedback.classList.add('opacity-0');
+        }
+        currentQuizIndex++;
+        loadQuizQuestion();
+      }, 1100);
+    }
+
+    function handleQuizTimeout() {
+      const q = quizQuestions[currentQuizIndex];
+      quizStreak = 0;
+      const strk = document.getElementById('quiz-streak');
+      if (strk) strk.innerText = '0';
+      const feedback = document.getElementById('quiz-feedback');
+
+      if (feedback) {
+        feedback.className = "h-10 w-full flex items-center justify-center text-sm font-bold rounded-xl bg-amber-50 text-amber-700 border border-amber-200 opacity-100 transition-opacity";
+        feedback.innerHTML = `<i class="fa-solid fa-hourglass-end mr-2"></i> 시간 초과! 정답: <strong>${q.meaning}</strong>`;
+      }
+
+      const allButtons = document.querySelectorAll('#quiz-options-grid button');
+      allButtons.forEach(btn => {
+        btn.disabled = true;
+        if (btn.innerText.trim() === q.meaning) {
+          btn.classList.add('!bg-emerald-50', '!border-emerald-500', '!text-emerald-700');
+        }
+      });
+
+      setTimeout(() => {
+        if (feedback) {
+          feedback.classList.remove('opacity-100');
+          feedback.classList.add('opacity-0');
+        }
+        currentQuizIndex++;
+        loadQuizQuestion();
+      }, 1300);
+    }
+
+    function playCurrentWordAudio() {
+      if (quizQuestions[currentQuizIndex]) playTTS(quizQuestions[currentQuizIndex].phrase);
+    }
+
+    function toggleFavoriteCurrent() {
+      const q = quizQuestions[currentQuizIndex];
+      if (!q) return;
+      if (userStats.starred.has(q.id)) userStats.starred.delete(q.id);
+      else userStats.starred.add(q.id);
+      const btn = document.getElementById('quiz-star-btn');
+      if (btn) btn.innerHTML = userStats.starred.has(q.id) ? '<i class="fa-solid fa-star text-amber-500"></i>' : '<i class="fa-regular fa-star"></i>';
+    }
+
+    // ================= WORD RAIN =================
+    let rainCanvas, rainCtx, rainDrops = [], rainScore = 0, rainLives = 3, rainAnimId = null, rainSpawnTimer = null, rainRunning = false;
+
+    function initRainCanvas() {
+      rainCanvas = document.getElementById('rain-canvas');
+      if (!rainCanvas) return;
+      rainCtx = rainCanvas.getContext('2d');
+      const arena = document.getElementById('rain-arena');
+      if (arena) {
+        rainCanvas.width = arena.clientWidth;
+        rainCanvas.height = arena.clientHeight;
+      }
+    }
+
+    window.addEventListener('resize', () => {
+      if (currentTab === 'rain' && rainCanvas) initRainCanvas();
+    });
+
+    function startRainGame() {
+      initRainCanvas();
+      stopRainLoop();
+      document.getElementById('rain-game-overlay')?.classList.add('hidden');
+      rainScore = 0;
+      rainLives = 3;
+      rainDrops = [];
+      rainRunning = true;
+      const scr = document.getElementById('rain-score');
+      const inp = document.getElementById('rain-input');
+      if (scr) scr.innerText = '0';
+      updateRainLivesUI();
+      if (inp) {
+        inp.value = '';
+        inp.focus();
+      }
+
+      spawnRainDrop();
+      rainSpawnTimer = setInterval(spawnRainDrop, 3000);
+      rainAnimLoop();
+    }
+
+    function restartRainGame() { startRainGame(); }
+
+    function stopRainLoop() {
+      rainRunning = false;
+      if (rainAnimId) cancelAnimationFrame(rainAnimId);
+      if (rainSpawnTimer) clearInterval(rainSpawnTimer);
+    }
+
+    function spawnRainDrop() {
+      if (!rainRunning || !rainCanvas) return;
+      const sample = window.VOCAB_DATA[Math.floor(Math.random() * window.VOCAB_DATA.length)];
+      const padding = 100;
+      const x = padding + Math.random() * (rainCanvas.width - padding * 2);
+
+      rainDrops.push({
+        id: sample.id,
+        target: sample.target.toLowerCase(),
+        phrase: sample.phrase,
+        meaning: sample.meaning,
+        x: x,
+        y: 20,
+        speed: 0.5 + Math.random() * 0.4
+      });
+    }
+
+    function rainAnimLoop() {
+      if (!rainRunning || !rainCtx) return;
+      rainCtx.clearRect(0, 0, rainCanvas.width, rainCanvas.height);
+
+      for (let i = rainDrops.length - 1; i >= 0; i--) {
+        const d = rainDrops[i];
+        d.y += d.speed;
+
+        rainCtx.fillStyle = "#ffffff";
+        rainCtx.strokeStyle = "#cbd5e1";
+        rainCtx.lineWidth = 1.5;
+
+        const boxWidth = 160;
+        const boxHeight = 38;
+        const bx = d.x - boxWidth / 2;
+        const by = d.y;
+
+        rainCtx.beginPath();
+        rainCtx.roundRect(bx, by, boxWidth, boxHeight, 10);
+        rainCtx.fill();
+        rainCtx.stroke();
+
+        rainCtx.fillStyle = "#0f172a";
+        rainCtx.font = "bold 12px 'Noto Sans KR', sans-serif";
+        rainCtx.textAlign = "center";
+        rainCtx.fillText(d.meaning, d.x, by + 23);
+
+        if (d.y + boxHeight >= rainCanvas.height - 10) {
+          rainDrops.splice(i, 1);
+          rainLives--;
+          updateRainLivesUI();
+          if (rainLives <= 0) {
+            endRainGame();
+            return;
+          }
+        }
+      }
+
+      rainAnimId = requestAnimationFrame(rainAnimLoop);
+    }
+
+    function updateRainLivesUI() {
+      const el = document.getElementById('rain-lives');
+      if (el) el.innerText = "❤️".repeat(Math.max(0, rainLives));
+    }
+
+    function endRainGame() {
+      stopRainLoop();
+      document.getElementById('rain-game-overlay')?.classList.remove('hidden');
+      const desc = document.getElementById('rain-game-desc');
+      if (desc) desc.innerText = `최종 격추 점수: ${rainScore}점`;
+      window.cloudService.addXP(Math.round(rainScore / 10));
+    }
+
+    function handleRainSubmit(e) {
+      e.preventDefault();
+      const input = document.getElementById('rain-input');
+      if (!input) return;
+      const val = input.value.trim().toLowerCase();
+      if (!val) return;
+
+      const hitIndex = rainDrops.findIndex(d => d.target === val || d.phrase.toLowerCase() === val);
+      if (hitIndex !== -1) {
+        const hit = rainDrops[hitIndex];
+        playTTS(hit.phrase);
+        userStats.mastered.add(hit.id);
+        updateMasteredCount();
+        rainDrops.splice(hitIndex, 1);
+        rainScore += 100;
+        const scr = document.getElementById('rain-score');
+        if (scr) scr.innerText = rainScore;
+        input.value = '';
+        window.cloudService.addXP(10);
+      } else {
+        input.classList.add('!border-rose-500', '!bg-rose-50');
+        setTimeout(() => input.classList.remove('!border-rose-500', '!bg-rose-50'), 300);
+      }
+    }
+
+    // ================= OX SPEED GAME =================
+    let tfCurrentItem = null, tfIsCorrectPair = true, tfScore = 0, tfTimerVal = 5, tfTimerInterval = null;
+
+    function startTFGame() {
+      tfScore = 0;
+      const scr = document.getElementById('tf-score');
+      if (scr) scr.innerText = '0';
+      loadNextTF();
+    }
+
+    function loadNextTF() {
+      clearInterval(tfTimerInterval);
+      tfCurrentItem = window.VOCAB_DATA[Math.floor(Math.random() * window.VOCAB_DATA.length)];
+      tfIsCorrectPair = Math.random() > 0.45;
+
+      let meaningToDisplay = tfCurrentItem.meaning;
+      if (!tfIsCorrectPair) {
+        const distractors = window.VOCAB_DATA.filter(item => item.id !== tfCurrentItem.id);
+        meaningToDisplay = distractors[Math.floor(Math.random() * distractors.length)].meaning;
+      }
+
+      const phr = document.getElementById('tf-phrase');
+      const mean = document.getElementById('tf-displayed-meaning');
+      const tim = document.getElementById('tf-timer');
+      if (phr) phr.innerText = tfCurrentItem.phrase;
+      if (mean) mean.innerText = meaningToDisplay;
+
+      playTTS(tfCurrentItem.phrase);
+
+      tfTimerVal = 5;
+      if (tim) tim.innerText = `${tfTimerVal}s`;
+      tfTimerInterval = setInterval(() => {
+        tfTimerVal--;
+        if (tim) tim.innerText = `${tfTimerVal}s`;
+        if (tfTimerVal <= 0) {
+          clearInterval(tfTimerInterval);
+          handleTFAnswer(null);
+        }
+      }, 1000);
+    }
+
+    function handleTFAnswer(userChoice) {
+      clearInterval(tfTimerInterval);
+      const fb = document.getElementById('tf-feedback');
+      const isCorrect = userChoice === tfIsCorrectPair;
+
+      if (isCorrect) {
+        tfScore += 100;
+        const scr = document.getElementById('tf-score');
+        if (scr) scr.innerText = tfScore;
+        userStats.mastered.add(tfCurrentItem.id);
+        updateMasteredCount();
+        window.cloudService.addXP(10);
+        if (fb) {
+          fb.className = "h-6 text-sm font-bold text-emerald-600 opacity-100 transition-opacity";
+          fb.innerText = "정답입니다!";
+        }
+      } else {
+        if (fb) {
+          fb.className = "h-6 text-sm font-bold text-rose-600 opacity-100 transition-opacity";
+          fb.innerText = userChoice === null ? "시간 초과!" : `오답! 올바른 뜻: [${tfCurrentItem.meaning}]`;
+        }
+      }
+
+      setTimeout(() => {
+        if (fb) {
+          fb.classList.remove('opacity-100');
+          fb.classList.add('opacity-0');
+        }
+        loadNextTF();
+      }, 1000);
+    }
+
+    // ================= LISTENING GAME =================
+    let currentListeningItem = null, listeningScore = 0;
+
+    function startListeningGame() {
+      listeningScore = 0;
+      const scr = document.getElementById('listening-score');
+      if (scr) scr.innerText = '0';
+      loadNextListening();
+    }
+
+    function loadNextListening() {
+      currentListeningItem = window.VOCAB_DATA[Math.floor(Math.random() * window.VOCAB_DATA.length)];
+      playListeningAudio();
+
+      const distractors = window.VOCAB_DATA
+        .filter(i => i.id !== currentListeningItem.id)
+        .sort(() => 0.5 - Math.random())
+        .slice(0, 3);
+
+      const options = [...distractors, currentListeningItem].sort(() => 0.5 - Math.random());
+      const grid = document.getElementById('listening-options-grid');
+      if (!grid) return;
+      grid.innerHTML = '';
+
+      options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = "p-4 clean-card clean-card-hover rounded-2xl text-left transition";
+        btn.innerHTML = `<div class="text-sm font-bold text-slate-800 mb-0.5">${opt.phrase}</div><div class="text-xs text-slate-500 font-medium">${opt.meaning}</div>`;
+        btn.onclick = () => handleListeningAnswer(opt.id, btn);
+        grid.appendChild(btn);
+      });
+    }
+
+    function playListeningAudio() {
+      if (currentListeningItem) playTTS(currentListeningItem.phrase);
+    }
+
+    function handleListeningAnswer(selectedId, btn) {
+      const fb = document.getElementById('listening-feedback');
+      const allBtns = document.querySelectorAll('#listening-options-grid button');
+      allBtns.forEach(b => b.disabled = true);
+
+      if (selectedId === currentListeningItem.id) {
+        btn.classList.add('!bg-emerald-50', '!border-emerald-500');
+        listeningScore += 100;
+        const scr = document.getElementById('listening-score');
+        if (scr) scr.innerText = listeningScore;
+        userStats.mastered.add(currentListeningItem.id);
+        updateMasteredCount();
+        window.cloudService.addXP(10);
+
+        if (fb) {
+          fb.className = "h-8 text-sm font-bold text-emerald-600 opacity-100 transition-opacity";
+          fb.innerText = "정확하게 들으셨습니다! (+100점)";
+        }
+      } else {
+        btn.classList.add('!bg-rose-50', '!border-rose-400');
+        if (fb) {
+          fb.className = "h-8 text-sm font-bold text-rose-600 opacity-100 transition-opacity";
+          fb.innerText = `정답: ${currentListeningItem.phrase}`;
+        }
+      }
+
+      setTimeout(() => {
+        if (fb) {
+          fb.classList.remove('opacity-100');
+          fb.classList.add('opacity-0');
+        }
+        loadNextListening();
+      }, 1100);
+    }
+
+    // ================= CARD MATCH =================
+    let matchCards = [], selectedFirstCard = null, matchLock = false, matchAttempts = 0, matchRemaining = 0;
+
+    function startCardMatchGame() {
+      matchAttempts = 0;
+      selectedFirstCard = null;
+      matchLock = false;
+      const att = document.getElementById('match-attempts');
+      if (att) att.innerText = '0';
+
+      const sampled = [...window.VOCAB_DATA].sort(() => 0.5 - Math.random()).slice(0, Math.min(8, window.VOCAB_DATA.length));
+      matchRemaining = sampled.length;
+      const rem = document.getElementById('match-remaining');
+      if (rem) rem.innerText = matchRemaining;
+
+      matchCards = [];
+      sampled.forEach(item => {
+        matchCards.push({ id: item.id, content: item.phrase, type: 'en', pairId: item.id });
+        matchCards.push({ id: item.id, content: item.meaning, type: 'ko', pairId: item.id });
+      });
+
+      matchCards.sort(() => 0.5 - Math.random());
+      const board = document.getElementById('card-match-board');
+      if (!board) return;
+      board.innerHTML = '';
+
+      matchCards.forEach((card, index) => {
+        const cardEl = document.createElement('div');
+        cardEl.className = "h-24 sm:h-28 clean-card rounded-2xl p-3 flex items-center justify-center text-center cursor-pointer border border-slate-200 hover:border-slate-400 transition-all duration-200 relative select-none transform active:scale-95";
+        cardEl.dataset.index = index;
+        cardEl.dataset.pairId = card.pairId;
+        cardEl.dataset.type = card.type;
+        cardEl.innerHTML = `
+          <div class="text-xs sm:text-sm font-bold text-slate-800 pointer-events-none line-clamp-3">${card.content}</div>
+          <div class="absolute top-1.5 left-2 text-[9px] uppercase font-bold text-slate-400">${card.type === 'en' ? 'ENG' : 'KOR'}</div>
+        `;
+        cardEl.onclick = () => onCardClicked(cardEl, card);
+        board.appendChild(cardEl);
+      });
+    }
+
+    function onCardClicked(cardEl, cardData) {
+      if (matchLock || cardEl.classList.contains('matched') || cardEl === selectedFirstCard) return;
+      cardEl.classList.add('!border-indigo-600', '!bg-indigo-50');
+
+      if (!selectedFirstCard) {
+        selectedFirstCard = cardEl;
+        if (cardData.type === 'en') playTTS(cardData.content);
+        return;
+      }
+
+      matchAttempts++;
+      const att = document.getElementById('match-attempts');
+      if (att) att.innerText = matchAttempts;
+      matchLock = true;
+
+      const firstPairId = selectedFirstCard.dataset.pairId;
+      const secondPairId = cardEl.dataset.pairId;
+      const firstType = selectedFirstCard.dataset.type;
+      const secondType = cardEl.dataset.type;
+
+      if (firstPairId === secondPairId && firstType !== secondType) {
+        setTimeout(() => {
+          selectedFirstCard.classList.add('matched', '!bg-emerald-50', '!border-emerald-500', '!text-emerald-700', 'opacity-50', 'pointer-events-none');
+          cardEl.classList.add('matched', '!bg-emerald-50', '!border-emerald-500', '!text-emerald-700', 'opacity-50', 'pointer-events-none');
+
+          matchRemaining--;
+          const rem = document.getElementById('match-remaining');
+          if (rem) rem.innerText = matchRemaining;
+          selectedFirstCard = null;
+          matchLock = false;
+
+          userStats.mastered.add(Number(firstPairId));
+          updateMasteredCount();
+          window.cloudService.addXP(10);
+
+          if (matchRemaining === 0) {
+            confetti({ particleCount: 50, spread: 70, origin: { y: 0.6 } });
+            window.cloudService.addXP(30);
+            setTimeout(() => {
+              showGameOverModal(1000 - (matchAttempts * 20), `${matchAttempts}회 만에 완료! (+30 XP)`);
+            }, 500);
+          }
+        }, 300);
+      } else {
+        setTimeout(() => {
+          selectedFirstCard.classList.add('!bg-rose-50', '!border-rose-400');
+          cardEl.classList.add('!bg-rose-50', '!border-rose-400');
+
+          setTimeout(() => {
+            selectedFirstCard.classList.remove('!border-indigo-600', '!bg-indigo-50', '!bg-rose-50', '!border-rose-400');
+            cardEl.classList.remove('!border-indigo-600', '!bg-indigo-50', '!bg-rose-50', '!border-rose-400');
+            selectedFirstCard = null;
+            matchLock = false;
+          }, 400);
+        }, 300);
+      }
+    }
+
+    // ================= BLANK GAME =================
+    let blankQueue = [], currentBlankItem = null, blankScore = 0;
+
+    function startBlankGame() {
+      blankQueue = [...window.VOCAB_DATA].sort(() => 0.5 - Math.random());
+      blankScore = 0;
+      const scr = document.getElementById('blank-score');
+      if (scr) scr.innerText = '0';
+      loadNextBlank();
+    }
+
+    function loadNextBlank() {
+      if (blankQueue.length === 0) {
+        showGameOverModal(blankScore, "빈칸 완성 클리어!");
+        window.cloudService.addXP(30);
+        return;
+      }
+
+      currentBlankItem = blankQueue.pop();
+      const kor = document.getElementById('blank-korean');
+      const inp = document.getElementById('blank-input');
+      const disp = document.getElementById('blank-sentence-display');
+
+      if (kor) kor.innerText = currentBlankItem.meaning;
+      if (inp) {
+        inp.value = '';
+        inp.focus();
+      }
+
+      const regex = new RegExp(currentBlankItem.target, 'gi');
+      if (disp) disp.innerText = currentBlankItem.phrase.replace(regex, '______');
+    }
+
+    function skipBlankQuestion() {
+      showBlankFeedback(false, `정답: ${currentBlankItem.target}`);
+      setTimeout(loadNextBlank, 1200);
+    }
+
+    function handleBlankSubmit(e) {
+      e.preventDefault();
+      if (!currentBlankItem) return;
+
+      const inp = document.getElementById('blank-input');
+      if (!inp) return;
+      const input = inp.value.trim().toLowerCase();
+      const target = currentBlankItem.target.toLowerCase();
+
+      if (input === target) {
+        blankScore += 100;
+        const scr = document.getElementById('blank-score');
+        if (scr) scr.innerText = blankScore;
+        userStats.mastered.add(currentBlankItem.id);
+        updateMasteredCount();
+        window.cloudService.addXP(15);
+        playTTS(currentBlankItem.phrase);
+        showBlankFeedback(true, "정답입니다! (+15 XP)");
+        setTimeout(loadNextBlank, 800);
+      } else {
+        showBlankFeedback(false, `오답! 정답은 '${currentBlankItem.target}' 입니다.`);
+        setTimeout(loadNextBlank, 1300);
+      }
+    }
+
+    function showBlankFeedback(isCorrect, message) {
+      const fb = document.getElementById('blank-feedback');
+      if (!fb) return;
+      fb.className = isCorrect ? "h-10 text-center text-sm font-bold text-emerald-600 opacity-100 transition-opacity" : "h-10 text-center text-sm font-bold text-rose-600 opacity-100 transition-opacity";
+      fb.innerText = message;
+      setTimeout(() => fb.classList.remove('opacity-100'), 1200);
+    }
+
+    // ================= SCRAMBLE GAME =================
+    let scrambleQueue = [], currentScrambleItem = null, scrambleScore = 0, scrambleCurrentWord = [], scrambleTargetWord = "", scrambleCurrentWordIndices = [];
+
+    function startScrambleGame() {
+      scrambleQueue = [...window.VOCAB_DATA].filter(item => !item.target.includes(' ') && !item.target.includes('-')).sort(() => 0.5 - Math.random());
+      scrambleScore = 0;
+      const scr = document.getElementById('scramble-score');
+      if (scr) scr.innerText = '0';
+      loadNextScramble();
+    }
+
+    function loadNextScramble() {
+      if (scrambleQueue.length === 0) {
+        showGameOverModal(scrambleScore * 100, "스크램블 클리어!");
+        window.cloudService.addXP(30);
+        return;
+      }
+
+      currentScrambleItem = scrambleQueue.pop();
+      scrambleTargetWord = currentScrambleItem.target.toUpperCase();
+      scrambleCurrentWord = [];
+      scrambleCurrentWordIndices = [];
+      window.scrambleShuffledLetters = null;
+
+      const mean = document.getElementById('scramble-meaning');
+      const ctx = document.getElementById('scramble-context');
+      if (mean) mean.innerText = currentScrambleItem.meaning;
+      if (ctx) ctx.innerText = currentScrambleItem.phrase.replace(new RegExp(currentScrambleItem.target, 'i'), '_______');
+
+      renderScrambleTiles();
+    }
+
+    function renderScrambleTiles() {
+      const slotsContainer = document.getElementById('scramble-assembled-slots');
+      const poolContainer = document.getElementById('scramble-letter-pool');
+      if (!slotsContainer || !poolContainer) return;
+      slotsContainer.innerHTML = '';
+      poolContainer.innerHTML = '';
+
+      if (scrambleCurrentWord.length === 0) {
+        slotsContainer.innerHTML = `<span class="text-xs text-slate-400 font-semibold tracking-wider">아래 글자를 차례로 클릭하여 단어를 조립하세요</span>`;
+      } else {
+        scrambleCurrentWord.forEach((char, idx) => {
+          const btn = document.createElement('button');
+          btn.className = "w-10 h-10 rounded-xl bg-indigo-600 text-white font-black text-lg shadow-sm hover:bg-rose-500 transition";
+          btn.innerText = char;
+          btn.onclick = () => removeScrambleChar(idx);
+          slotsContainer.appendChild(btn);
+        });
+      }
+
+      const letters = scrambleTargetWord.split('').map((char, index) => ({ char, index }));
+      if (!window.scrambleShuffledLetters || window.currentScrambleTarget !== scrambleTargetWord) {
+        window.currentScrambleTarget = scrambleTargetWord;
+        window.scrambleShuffledLetters = letters.sort(() => 0.5 - Math.random());
+      }
+
+      window.scrambleShuffledLetters.forEach((item) => {
+        const btn = document.createElement('button');
+        const isUsed = scrambleCurrentWordIndices.includes(item.index);
+        btn.className = `w-11 h-11 rounded-xl font-black text-lg transition ${
+          isUsed ? 'bg-slate-100 text-slate-300 cursor-not-allowed pointer-events-none' : 'bg-white hover:bg-indigo-50 text-slate-800 border border-slate-300 shadow-sm active:scale-95'
+        }`;
+        btn.innerText = item.char;
+        btn.onclick = () => addScrambleChar(item.char, item.index);
+        poolContainer.appendChild(btn);
+      });
+    }
+
+    function addScrambleChar(char, index) {
+      scrambleCurrentWord.push(char);
+      scrambleCurrentWordIndices.push(index);
+      renderScrambleTiles();
+
+      if (scrambleCurrentWord.length === scrambleTargetWord.length) checkScrambleResult();
+    }
+
+    function removeScrambleChar(idx) {
+      scrambleCurrentWord.splice(idx, 1);
+      scrambleCurrentWordIndices.splice(idx, 1);
+      renderScrambleTiles();
+    }
+
+    function resetScrambleInput() {
+      scrambleCurrentWord = [];
+      scrambleCurrentWordIndices = [];
+      renderScrambleTiles();
+    }
+
+    function skipScramble() {
+      showScrambleFeedback(false, `정답: ${scrambleTargetWord}`);
+      setTimeout(loadNextScramble, 1200);
+    }
+
+    function checkScrambleResult() {
+      const assembled = scrambleCurrentWord.join('');
+      if (assembled === scrambleTargetWord) {
+        scrambleScore++;
+        const scr = document.getElementById('scramble-score');
+        if (scr) scr.innerText = scrambleScore;
+        userStats.mastered.add(currentScrambleItem.id);
+        updateMasteredCount();
+        window.cloudService.addXP(15);
+        playTTS(currentScrambleItem.phrase);
+        showScrambleFeedback(true, `정답입니다! "${scrambleTargetWord}" 완성!`);
+        setTimeout(() => {
+          scrambleCurrentWord = [];
+          scrambleCurrentWordIndices = [];
+          window.scrambleShuffledLetters = null;
+          loadNextScramble();
+        }, 1000);
+      } else {
+        showScrambleFeedback(false, "철자 순서가 맞지 않습니다!");
+        setTimeout(resetScrambleInput, 1000);
+      }
+    }
+
+    function showScrambleFeedback(isCorrect, message) {
+      const fb = document.getElementById('scramble-feedback');
+      if (!fb) return;
+      fb.className = isCorrect ? "h-10 text-center text-sm font-bold text-emerald-600 opacity-100 transition-opacity" : "h-10 text-center text-sm font-bold text-rose-600 opacity-100 transition-opacity";
+      fb.innerText = message;
+      setTimeout(() => fb.classList.remove('opacity-100'), 1100);
+    }
+
+    // ================= FLASHCARD =================
+    let fcIndex = 0, isFlipped = false;
+
+    function renderFlashcard() {
+      if (window.VOCAB_DATA.length === 0) return;
+      isFlipped = false;
+      const inner = document.getElementById('flashcard-inner');
+      if (inner) inner.classList.remove('rotate-y-180');
+
+      const item = window.VOCAB_DATA[fcIndex];
+      const front = document.getElementById('fc-front-term');
+      const back = document.getElementById('fc-back-meaning');
+      const prog = document.getElementById('fc-progress-text');
+      const star = document.getElementById('fc-star-icon');
+
+      if (front) front.innerText = item.phrase;
+      if (back) back.innerText = item.meaning;
+      if (prog) prog.innerText = `카드 ${fcIndex + 1} / ${window.VOCAB_DATA.length}`;
+      if (star) star.className = userStats.starred.has(item.id) ? "fa-solid fa-star text-amber-400 text-sm" : "fa-regular fa-star text-sm";
+    }
+
+    function flipFlashcard() {
+      const inner = document.getElementById('flashcard-inner');
+      if (!inner) return;
+      isFlipped = !isFlipped;
+      if (isFlipped) inner.classList.add('rotate-y-180');
+      else inner.classList.remove('rotate-y-180');
+    }
+
+    function nextFlashcard() {
+      fcIndex = (fcIndex + 1) % window.VOCAB_DATA.length;
+      renderFlashcard();
+    }
+
+    function prevFlashcard() {
+      fcIndex = (fcIndex - 1 + window.VOCAB_DATA.length) % window.VOCAB_DATA.length;
+      renderFlashcard();
+    }
+
+    function markFCMastered(learned) {
+      const item = window.VOCAB_DATA[fcIndex];
+      if (learned) {
+        userStats.mastered.add(item.id);
+        window.cloudService.addXP(5);
+      } else {
+        userStats.mastered.delete(item.id);
+      }
+      updateMasteredCount();
+      nextFlashcard();
+    }
+
+    function playCurrentFCAudio() {
+      const item = window.VOCAB_DATA[fcIndex];
+      if (item) playTTS(item.phrase);
+    }
+
+    function toggleFavoriteCurrentFC() {
+      const item = window.VOCAB_DATA[fcIndex];
+      if (!item) return;
+      if (userStats.starred.has(item.id)) userStats.starred.delete(item.id);
+      else userStats.starred.add(item.id);
+      renderFlashcard();
+    }
+
+    // ================= VOCAB LIST =================
+    let vocabFilter = 'all';
+
+    function setVocabFilter(type) {
+      vocabFilter = type;
+      ['all', 'star', 'unlearned'].forEach(f => {
+        const btn = document.getElementById(`filter-${f}-btn`);
+        if (btn) {
+          if (f === type) btn.className = "px-3.5 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow-sm";
+          else btn.className = "px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:text-slate-900";
+        }
+      });
+      renderVocabList();
+    }
+
+    function renderVocabList() {
+      const container = document.getElementById('vocab-items-container');
+      if (!container) return;
+      const query = (document.getElementById('vocab-search-input')?.value || '').trim().toLowerCase();
+
+      let filtered = window.VOCAB_DATA.filter(item => {
+        const matchesQuery = item.phrase.toLowerCase().includes(query) ||
+                             item.meaning.toLowerCase().includes(query) ||
+                             item.target.toLowerCase().includes(query);
+        if (!matchesQuery) return false;
+        if (vocabFilter === 'star') return userStats.starred.has(item.id);
+        if (vocabFilter === 'unlearned') return !userStats.mastered.has(item.id);
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div class="col-span-full text-center py-12 text-slate-400"><i class="fa-regular fa-folder-open text-3xl mb-2"></i><p class="text-sm">일치하는 단어가 없습니다.</p></div>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(item => {
+        const isMastered = userStats.mastered.has(item.id);
+        const isStarred = userStats.starred.has(item.id);
+
+        return `
+          <div class="clean-card p-4 rounded-2xl flex items-center justify-between border border-slate-200 transition">
+            <div class="flex items-start gap-3">
+              <button onclick="toggleStarItem(${item.id})" class="mt-1 text-slate-300 hover:text-amber-500 transition">
+                <i class="${isStarred ? 'fa-solid fa-star text-amber-500' : 'fa-regular fa-star'}"></i>
+              </button>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="text-sm sm:text-base font-bold text-slate-800 hover:text-indigo-600 cursor-pointer" onclick="playTTS('${item.phrase}')">
+                    ${item.phrase}
+                  </span>
+                  <button onclick="playTTS('${item.phrase}')" class="text-xs text-slate-400 hover:text-indigo-600">
+                    <i class="fa-solid fa-volume-high"></i>
+                  </button>
+                </div>
+                <div class="text-xs text-slate-500 font-medium mt-0.5">${item.meaning}</div>
+              </div>
+            </div>
+            <div>
+              <button onclick="toggleMasteredItem(${item.id})" class="px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition ${isMastered ? 'bg-emerald-50 text-emerald-700 border-emerald-300' : 'bg-slate-50 text-slate-500 border-slate-200 hover:text-slate-800'}">
+                ${isMastered ? '<i class="fa-solid fa-check mr-1"></i>암기완료' : '미암기'}
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function toggleStarItem(id) {
+      if (userStats.starred.has(id)) userStats.starred.delete(id);
+      else userStats.starred.add(id);
+      renderVocabList();
+    }
+
+    function toggleMasteredItem(id) {
+      if (userStats.mastered.has(id)) {
+        userStats.mastered.delete(id);
+      } else {
+        userStats.mastered.add(id);
+        window.cloudService.addXP(5);
+      }
+      updateMasteredCount();
+      renderVocabList();
+    }
+
+    // Modal controls
+    function showGameOverModal(score, accText) {
+      const scr = document.getElementById('modal-final-score');
+      const acc = document.getElementById('modal-final-acc');
+      if (scr) scr.innerText = score;
+      if (acc) acc.innerText = accText;
+      document.getElementById('game-over-modal')?.classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('game-over-modal')?.classList.add('hidden');
+    }
+
+    function restartActiveGame() {
+      closeModal();
+      if (currentTab === 'quiz') startSpeedQuiz();
+      else if (currentTab === 'rain') startRainGame();
+      else if (currentTab === 'tf') startTFGame();
+      else if (currentTab === 'listening') startListeningGame();
+      else if (currentTab === 'cardmatch') startCardMatchGame();
+      else if (currentTab === 'blank') startBlankGame();
+      else if (currentTab === 'scramble') startScrambleGame();
+      else if (currentTab === 'autoplay') startAutoplayMode();
+      else if (currentTab === 'aicoach') startCoachMode();
+      else renderFlashcard();
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (currentTab === 'flashcard') {
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          flipFlashcard();
+        } else if (e.key === 'ArrowRight') nextFlashcard();
+        else if (e.key === 'ArrowLeft') prevFlashcard();
+      }
+    });
+
+    window.onload = function () {
+      updateMasteredCount();
+      renderBadgesUI();
+      selectMode('battle');
+    };
+  </script>
+</body>
+</html>
